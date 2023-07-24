@@ -33,6 +33,7 @@ class Client:
 
     def train_model(self, 
                     device: torch.device, 
+                    checkpoint_path: str,
                     num_epochs: int = 1, 
                     learning_rate: float = 1e-5,
                     epsilon: float = 1e-6,
@@ -117,7 +118,8 @@ class Client:
 
 
         # Save model
-        checkpoint_path = f"/home/munichcenter/code/bert/sst2/fedavg/results/bert_results/checkpoints/{self.name}_model.pt"
+        # checkpoint_path = f"/home/munichcenter/code/bert/sst2/fedavg/results/bert_results/checkpoints/{self.name}_model.pt"
+        checkpoint_path = checkpoint_path + f"/{self.name}_model.pt"
         self.save_model(path=checkpoint_path)
 
         print("Training complete!")

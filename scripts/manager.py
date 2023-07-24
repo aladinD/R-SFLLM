@@ -1,9 +1,10 @@
+from bert_model import CustomBertModel
 from datasets import load_dataset
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
-from transformers import BertForSequenceClassification, BertTokenizer
+from transformers import BertTokenizer
 from typing import Dict, List, Tuple
 
 
@@ -20,11 +21,11 @@ class Manager():
         self.batch_size = batch_size
 
 
-    def load_model(self, num_labels: int) -> BertForSequenceClassification:
+    def load_model(self, num_labels: int) -> CustomBertModel:
         """
         Loads the specified BERT model.
         """
-        self.model = BertForSequenceClassification.from_pretrained(self.model_type, num_labels=num_labels)
+        self.model = CustomBertModel.from_pretrained(self.model_type, num_labels=num_labels)
         return self.model
 
 
