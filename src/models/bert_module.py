@@ -12,7 +12,7 @@ class CustomBertModel(BertForSequenceClassification, LightningModule):
     LitModule BERT Model class for testing SFL.
     """
     def __init__(self, config) -> None:
-        super(BertForSequenceClassification, self).__init__(config)
+        super().__init__(config)
         
         # Create separate modules for embedding, attention, and head layers
         self.embedding = BertModel(config)
