@@ -1,17 +1,8 @@
 from datasets import load_dataset
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-import torch
-from torch.nn.parameter import Parameter
-from torch.utils.data import DataLoader, random_split
-from tqdm import tqdm
-from transformers import AdamW, BertForSequenceClassification, BertModel, BertTokenizer, get_linear_schedule_with_warmup
-from transformers.modeling_outputs import SequenceClassifierOutput, BaseModelOutputWithPoolingAndCrossAttentions
-from transformers.models.bert.modeling_bert import BertEncoder
-from typing import List, Tuple, Dict, Union
-
 from pytorch_lightning import LightningDataModule
+import torch
+from torch.utils.data import DataLoader
+from transformers import BertTokenizer
 
 
 class BertDataModule(LightningDataModule):
@@ -59,8 +50,8 @@ class BertDataModule(LightningDataModule):
         """
         Tokenizes the dataset.
         """
-        self.tokenizer = BertTokenizer.from_pretrained(self.model_type)
-        encodings = self.tokenizer(dataset["sentence"], truncation=True, padding=True)
+        tokenizer = BertTokenizer.from_pretrained(self.model_type)
+        encodings = tokenizer(dataset["sentence"], truncation=True, padding=True)
         labels = torch.tensor(dataset["label"], dtype=torch.long)
         input_ids = torch.tensor(encodings['input_ids'])
         attention_mask = torch.tensor(encodings['attention_mask'])
