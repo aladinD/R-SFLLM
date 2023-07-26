@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from pytorch_lightning import LightningDataModule
 import torch
 from torch.utils.data import DataLoader
@@ -10,11 +10,13 @@ class BertDataModule(LightningDataModule):
                  glue_dataset: str, 
                  batch_size: int,
                  num_workers: int,
+                 num_splits: int = None,
                  truncate: int = None)  -> None:
         super().__init__()
         self.glue_dataset = glue_dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.num_splits = num_splits
         self.truncate = truncate
 
 
@@ -30,6 +32,13 @@ class BertDataModule(LightningDataModule):
         if self.truncate is not None:
             self.train_dataset = self.train_dataset.select(range(self.truncate))
             self.val_dataset = self.val_dataset.select(range(self.truncate))
+        else:
+            pass
+
+        # Splitting
+        if self.num_splits is not None:
+            self.train_dataset = self._split_data(self.train_dataset, self.num_splits)[0]
+            self.val_dataset = self._split_data(self.val_dataset, self.num_splits)[0]
         else:
             pass
 
@@ -52,8 +61,17 @@ class BertDataModule(LightningDataModule):
         """
         tokenizer = BertTokenizer.from_pretrained(self.model_type)
         encodings = tokenizer(dataset["sentence"], truncation=True, padding=True)
-        labels = torch.tensor(dataset["label"], dtype=torch.long)
-        input_ids = torch.tensor(encodings['input_ids'])
-        attention_mask = torch.tensor(encodings['attention_mask'])
+        labels = dataset["label"]
+        input_ids = encodings['input_ids']
+        attention_mask = encodings['attention_mask']
         dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
-        return dataset  
+        return dataset 
+
+
+    def _split_data(self, 
+                    dataset: DatasetDict, 
+                    num_splits: int) -> None:
+        """
+        Splits the dataset into equal num_splits splits.
+        """
+        return torch.utils.data.random_split(dataset, num_splits)

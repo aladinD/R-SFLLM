@@ -53,7 +53,7 @@ class CustomBertModel(BertForSequenceClassification, LightningModule):
             return logits
         
 
-    def training_step(self, batch: Any) -> torch.tensor:
+    def training_step(self, batch: Any) -> torch.Tensor:
         inputs = {
             "input_ids": batch[0],
             "attention_mask": batch[1],
@@ -69,7 +69,7 @@ class CustomBertModel(BertForSequenceClassification, LightningModule):
         return loss
     
 
-    def validation_step(self, batch: Any) -> torch.tensor:
+    def validation_step(self, batch: Any) -> torch.Tensor:
         inputs = {
             "input_ids": batch[0],
             "attention_mask": batch[1],
