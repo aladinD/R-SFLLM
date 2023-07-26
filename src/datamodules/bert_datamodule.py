@@ -59,11 +59,11 @@ class BertDataModule(LightningDataModule):
         """
         Tokenizes the dataset.
         """
-        tokenizer = BertTokenizer.from_pretrained(self.model_type)
+        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         encodings = tokenizer(dataset["sentence"], truncation=True, padding=True)
-        labels = dataset["label"]
-        input_ids = encodings['input_ids']
-        attention_mask = encodings['attention_mask']
+        labels = torch.tensor(dataset["label"], dtype=torch.long)
+        input_ids = torch.tensor(encodings['input_ids'])
+        attention_mask = torch.tensor(encodings['attention_mask'])
         dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
         return dataset 
 

@@ -1,7 +1,7 @@
 from pytorch_lightning import LightningModule
 import torch
 from torchmetrics.classification.accuracy import Accuracy
-from transformers import BertForSequenceClassification, BertModel
+from transformers import BertForSequenceClassification, BertModel, get_linear_schedule_with_warmup
 from transformers.modeling_outputs import SequenceClassifierOutput
 from typing import Any, List, Tuple, Union
 from .bert_encoder import CustomBertEncoder
@@ -9,7 +9,7 @@ from .bert_encoder import CustomBertEncoder
 
 class CustomBertModel(BertForSequenceClassification, LightningModule):
     """
-    LitModule BERT Model class for testing SFL.
+    LitModule Custom Bert Model class for SFL.
     """
     def __init__(self, config) -> None:
         super().__init__(config)
@@ -69,20 +69,20 @@ class CustomBertModel(BertForSequenceClassification, LightningModule):
         return loss
     
 
-    def validation_step(self, batch: Any) -> torch.Tensor:
-        inputs = {
-            "input_ids": batch[0],
-            "attention_mask": batch[1],
-            "labels": batch[2]
-        }
-        with torch.no_grad():
-            outputs = self.forward(**inputs)
-        loss = outputs.loss
-        accuracy = self.accuracy(torch.argmax(outputs.logits, dim=1), inputs["labels"])
-
-        self.log_dict({'val_loss': loss, 'val_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
-
-        return loss
+#     def validation_step(self, batch: Any) -> torch.Tensor:
+#         inputs = {
+#             "input_ids": batch[0],
+#             "attention_mask": batch[1],
+#             "labels": batch[2]
+#         }
+#         with torch.no_grad():
+#             outputs = self.forward(**inputs)
+#         loss = outputs.loss
+#         accuracy = self.accuracy(torch.argmax(outputs.logits, dim=1), inputs["labels"])
+# 
+#         self.log_dict({'val_loss': loss, 'val_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+# 
+#         return loss
     
 
     def predict_step(self, batch: Any) -> torch.tensor:
@@ -98,9 +98,9 @@ class CustomBertModel(BertForSequenceClassification, LightningModule):
 
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-5, eps=1e-6)   # Add to congig! 
-        scheduler = torch.optim.get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256)  # Add to congig! 
+        optimizer = torch.optim.Adam(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
+        # scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256)  # Add to config! 
         return {
-            "optimizer": optimizer,
-            "lr_scheduler": scheduler
+            "optimizer": optimizer
+           # "lr_scheduler": scheduler
         }
