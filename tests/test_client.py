@@ -17,21 +17,8 @@ def client():
         "num_labels": 2
     })
 
-    trainer_config = AttributeDict({
-        "default_root_dir": "lightning_logs/",
-        "min_epochs": 1,
-        "max_epochs": 2,
-        "accelerator": "cpu",
-        "devices": 1,
-        "limit_train_batches": 100,
-        "limit_val_batches": 10,
-        "limit_test_batches": 10,
-        "check_val_every_n_epoch": 1,
-        "deterministic": False
-    })
-
     model = CustomBertModelModule.from_pretrained(**model_config)
-    trainer = pl.Trainer(**trainer_config)
+    trainer = pl.Trainer(fast_dev_run=True)
 
     # Create dummy data for training and validation
     train_data = DataLoader(torch.randn(100, 3), batch_size=32)
