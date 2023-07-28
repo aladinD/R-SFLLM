@@ -5,7 +5,6 @@ from src.datamodules.bert_datamodule import BertDataModule
 from pytorch_lightning.utilities.parsing import AttributeDict
 from datasets import load_dataset, DatasetDict
 import numpy as np
-# from tests.helpers import DummyDataset, DummyDataModule  # Create a dummy data module for testing
 
 
 @pytest.fixture
