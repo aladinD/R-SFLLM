@@ -1,7 +1,7 @@
 import torch
 from torch.nn.parameter import Parameter
 from typing import List, Dict
-from models.bert_module import CustomBertModelModule
+from src.models.bert_module import CustomBertModelModule
 
 
 class Aggregator:
