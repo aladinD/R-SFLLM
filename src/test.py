@@ -22,7 +22,7 @@ def main(cfg):
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(name=f"client_{i+1}",
-                        model=model if i == 0 else model.from_pretrained(**cfg.model.config),
+                        model=model,
                         trainer=pl.Trainer(**cfg.trainer),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
