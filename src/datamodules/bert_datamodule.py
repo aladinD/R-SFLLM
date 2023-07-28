@@ -10,12 +10,14 @@ class BertDataModule(LightningDataModule):
                  glue_dataset: str, 
                  batch_size: int,
                  num_workers: int,
+                 model_type: str = "bert-base-uncased",
                  num_splits: int = None,
                  truncate: int = None)  -> None:
         super().__init__()
         self.glue_dataset = glue_dataset
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.model_type = model_type
         self.num_splits = num_splits
         self.truncate = truncate
 
@@ -59,7 +61,7 @@ class BertDataModule(LightningDataModule):
         """
         Tokenizes the dataset.
         """
-        tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+        tokenizer = BertTokenizer.from_pretrained(self.model_type)
         encodings = tokenizer(dataset["sentence"], truncation=True, padding=True)
         labels = torch.tensor(dataset["label"], dtype=torch.long)
         input_ids = torch.tensor(encodings['input_ids'])
