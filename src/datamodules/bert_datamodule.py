@@ -99,15 +99,6 @@ class BertDataModule(LightningDataModule):
         return dataset.select(range(self.truncate))
 
 
-    # def _split_data(self, 
-    #                 dataset: DatasetDict, 
-    #                 num_splits: int) -> List:
-    #     """
-    #     Splits the dataset into equal num_splits splits.
-    #     """
-    #     return torch.utils.data.random_split(dataset, num_splits)
-
-
     def _split_data(self, 
                     dataset: DatasetDict, 
                     num_splits: int) -> List[DatasetDict]:

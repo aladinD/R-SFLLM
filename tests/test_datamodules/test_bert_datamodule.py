@@ -4,6 +4,7 @@ from transformers import BertTokenizer
 from src.datamodules.bert_datamodule import BertDataModule
 from pytorch_lightning.utilities.parsing import AttributeDict
 from datasets import load_dataset, DatasetDict
+import numpy as np
 # from tests.helpers import DummyDataset, DummyDataModule  # Create a dummy data module for testing
 
 
@@ -76,54 +77,37 @@ class TestBertDataModule:
         assert bert_data_module.val_dataset is not None  # The val_dataset should be set
 
 
-    # def test_split_data(self, bert_data_module):
-    #     # Create a dummy dataset for testing
-    #     dataset = load_dataset('glue', "sst2")
-    #     bert_data_module.dataset = dataset
+    def test_split_data(self, bert_data_module):
+        # Create a dummy dataset for testing
+        dataset = load_dataset('glue', "sst2")
+        bert_data_module.dataset = dataset
 
-    #     # Call the _split_data method with num_splits=2 and check if the dataset is split
-    #     splits = bert_data_module._split_data(dataset, num_splits=2)
-    #     assert isinstance(splits, list)
-    #     assert len(splits) == 2
-    #     assert all(isinstance(split, torch.utils.data.Subset) for split in splits)
+        # Assign the train dataset
+        bert_data_module.train_dataset = bert_data_module.dataset["train"]
 
+        print("TRAIN : ", len(bert_data_module.train_dataset))
 
+        # Call the _split_data method with num_splits=2 and check if the dataset is split
+        num_splits = 3
+        splits = bert_data_module._split_data(bert_data_module.train_dataset, num_splits=num_splits)
 
+        assert isinstance(splits, list)
+        assert len(splits) == num_splits
+        assert all(isinstance(split, torch.utils.data.Subset) for split in splits)
+        assert sum(len(split) for split in splits) == len(bert_data_module.train_dataset)
 
-
-
-
-
-    # def test_split_data(self, bert_data_module):
-    #     # Create a dummy dataset for testing
-    #     dataset = DummyDataset()
-    #     bert_data_module.dataset = dataset
-
-    #     # Call the _split_data method with num_splits=2 and check if the dataset is split
-    #     splits = bert_data_module._split_data(dataset, num_splits=2)
-    #     assert isinstance(splits, list)
-    #     assert len(splits) == 2
-    #     assert all(isinstance(split, torch.utils.data.Subset) for split in splits)
+    
+    def test_train_dataloader(self, bert_data_module):
+        # Call the train_dataloader method and check if a DataLoader object is returned
+        bert_data_module.prepare_data()
+        bert_data_module.setup()
+        dataloader = bert_data_module.train_dataloader()
+        assert isinstance(dataloader, torch.utils.data.DataLoader)
 
 
-    # def test_train_dataloader(self, bert_data_module):
-    #     # Call the train_dataloader method and check if a DataLoader object is returned
-    #     dataloader = bert_data_module.train_dataloader()
-    #     assert isinstance(dataloader, torch.utils.data.DataLoader)
-
-
-    # def test_val_dataloader(self, bert_data_module):
-    #     # Call the val_dataloader method and check if a DataLoader object is returned
-    #     dataloader = bert_data_module.val_dataloader()
-    #     assert isinstance(dataloader, torch.utils.data.DataLoader)
-
-
-    # def test_training_with_trainer(self):
-    #     # Create a dummy data module for testing
-    #     datamodule = DummyDataModule()
-
-    #     # Create a trainer instance with some basic configurations
-    #     trainer = Trainer(fast_dev_run=True)
-
-    #     # Fit the model using the trainer and data module
-    #     trainer.fit(datamodule=datamodule)
+    def test_val_dataloader(self, bert_data_module):
+        # Call the val_dataloader method and check if a DataLoader object is returned
+        bert_data_module.prepare_data()
+        bert_data_module.setup()
+        dataloader = bert_data_module.val_dataloader()
+        assert isinstance(dataloader, torch.utils.data.DataLoader)

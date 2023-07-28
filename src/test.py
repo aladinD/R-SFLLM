@@ -18,12 +18,23 @@ def main(cfg):
     train_dls = datamodule.train_dataloader()
     val_dls = datamodule.val_dataloader()
 
-    for i in range(3):
-        model = CustomBertModelModule.from_pretrained(**cfg.model.config)
-        trainer = pl.Trainer(**cfg.trainer)
-        trainer.fit(model, train_dls[i], val_dls[i])
+    a = train_dls[0]
+    print(len(a.dataset))
 
-        print(f"DONE TRAINING MODEL {i+1} of 3")
+    b = train_dls[1]
+    print(len(b.dataset))
+
+    c = train_dls[2]
+    print(len(c.dataset))
+
+    # print(len(train_dls.dataset))
+
+    # for i in range(3):
+    #     model = CustomBertModelModule.from_pretrained(**cfg.model.config)
+    #     trainer = pl.Trainer(**cfg.trainer)
+    #     trainer.fit(model, train_dls[i], val_dls[i])
+
+    #     print(f"DONE TRAINING MODEL {i+1} of 3")
 
 
 if __name__ == "__main__":
