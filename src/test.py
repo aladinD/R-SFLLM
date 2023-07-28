@@ -8,9 +8,22 @@ import pytorch_lightning as pl
 def main(cfg):
     model = CustomBertModelModule.from_pretrained(**cfg.model.config)
     datamodule = BertDataModule(**cfg.data)
-    trainer = pl.Trainer(**cfg.trainer)
 
-    trainer.fit(model, datamodule=datamodule)
+    # trainer = pl.Trainer(**cfg.trainer)
+    # trainer.fit(model, datamodule=datamodule)
+
+    # Testing Mutliple Instances
+    datamodule.prepare_data()
+    datamodule.setup()
+    train_dls = datamodule.train_dataloader()
+    val_dls = datamodule.val_dataloader()
+
+    for i in range(3):
+        model = CustomBertModelModule.from_pretrained(**cfg.model.config)
+        trainer = pl.Trainer(**cfg.trainer)
+        trainer.fit(model, train_dls[i], val_dls[i])
+
+        print(f"DONE TRAINING MODEL {i+1} of 3")
 
 
 if __name__ == "__main__":

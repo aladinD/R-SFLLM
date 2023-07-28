@@ -1,7 +1,7 @@
 from pytorch_lightning import LightningModule
 import torch
 from torchmetrics.classification.accuracy import Accuracy
-from transformers import AdamW, BertForSequenceClassification, BertModel, get_linear_schedule_with_warmup
+from transformers import BertForSequenceClassification, BertModel, get_linear_schedule_with_warmup
 from transformers.modeling_outputs import SequenceClassifierOutput
 from typing import Any, List, Tuple, Union
 from .bert_encoder import CustomBertEncoder
@@ -99,7 +99,7 @@ class CustomBertModelModule(BertForSequenceClassification, LightningModule):
 
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
-        optimizer = AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
+        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
         # scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256)  # Add to config! 
         return {
             "optimizer": optimizer

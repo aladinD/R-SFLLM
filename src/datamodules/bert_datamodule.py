@@ -3,6 +3,7 @@ from pytorch_lightning import LightningDataModule
 import torch
 from torch.utils.data import DataLoader
 from transformers import BertTokenizer
+from typing import List
 
 
 class BertDataModule(LightningDataModule):
@@ -42,15 +43,8 @@ class BertDataModule(LightningDataModule):
 
         # Truncation
         if self.truncate is not None:
-            self.train_dataset = self.train_dataset.select(range(self.truncate))
-            self.val_dataset = self.val_dataset.select(range(self.truncate))
-        else:
-            pass
-
-        # Splitting
-        if self.num_splits is not None:
-            self.train_dataset = self._split_data(self.train_dataset, self.num_splits)[0]
-            self.val_dataset = self._split_data(self.val_dataset, self.num_splits)[0]
+            self.train_dataset = self._truncate(self.train_dataset)
+            self.val_dataset = self._truncate(self.val_dataset)
         else:
             pass
 
@@ -63,14 +57,26 @@ class BertDataModule(LightningDataModule):
         """
         Returns a Dataloader object for the training dataset.
         """
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+        # Splitting
+        if self.num_splits is not None:
+            splits = self._split_data(self.train_dataset, self.num_splits)
+            return [DataLoader(split, batch_size=self.batch_size) for split in splits]
+        else:
+            return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
 
     def val_dataloader(self) -> DataLoader:
         """
         Returns a Dataloader object for the validation dataset.
         """
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+        # Splitting
+        if self.num_splits is not None:
+            splits = self._split_data(self.val_dataset, self.num_splits)
+            return [DataLoader(split, batch_size=self.batch_size) for split in splits]
+        else:
+            return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+
+        # return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
 
     def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
@@ -86,10 +92,32 @@ class BertDataModule(LightningDataModule):
         return dataset 
 
 
+    def _truncate(self, dataset) -> DatasetDict:
+        """
+        Truncates the dataset to the specified length.
+        """
+        return dataset.select(range(self.truncate))
+
+
+    # def _split_data(self, 
+    #                 dataset: DatasetDict, 
+    #                 num_splits: int) -> List:
+    #     """
+    #     Splits the dataset into equal num_splits splits.
+    #     """
+    #     return torch.utils.data.random_split(dataset, num_splits)
+
+
     def _split_data(self, 
                     dataset: DatasetDict, 
-                    num_splits: int) -> None:
+                    num_splits: int) -> List[DatasetDict]:
         """
         Splits the dataset into equal num_splits splits.
         """
-        return torch.utils.data.random_split(dataset, num_splits)
+        split_size = len(dataset) // num_splits
+        remainder = len(dataset) % num_splits
+
+        split_lengths = [split_size + 1 if i < remainder else split_size for i in range(num_splits)]
+        splits = torch.utils.data.random_split(dataset, split_lengths)
+
+        return splits

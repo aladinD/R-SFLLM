@@ -9,6 +9,7 @@ data:
   num_workers: 1
   model_type: "bert-base-uncased"
   truncate: 100
+  num_splits: 3
 
 trainer:
   default_root_dir: "lightning_logs/"
