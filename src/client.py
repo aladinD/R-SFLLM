@@ -1,6 +1,9 @@
+from src.models.bert_module import CustomBertModelModule
+import pytorch_lightning as pl
+import torch
 from torch.nn.parameter import Parameter
 from torch.utils.data import DataLoader
-from models.bert_module import CustomBertModelModule
+from typing import Dict
 
 
 class Client:
@@ -10,19 +13,14 @@ class Client:
     def __init__(self, 
                  name: str, 
                  model: CustomBertModelModule,
+                 trainer: pl.Trainer,
                  train_data: DataLoader,
                  val_data: DataLoader) -> None:
         self.name = name
         self.model = model
+        self.trainer = trainer
         self.train_data = train_data
-        self.val_data = valid_data
-
-    
-    def save_model(self, path: str) -> None:
-        """
-        Saves the current model to the specified path.
-        """
-        torch.save(self.model.state_dict(), path)
+        self.val_data = val_data
 
 
     def update_model(self, updates: Dict[str, Parameter]) -> None:

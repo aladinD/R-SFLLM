@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 5
-  num_rounds: 5
-  num_epochs: 5
+  num_clients: 2
+  num_rounds: 2
+  num_epochs: 2
 
 model:
   config:
@@ -14,7 +14,7 @@ data:
   num_workers: 1
   model_type: "bert-base-uncased"
   truncate: 100
-  num_splits: 3
+  num_splits: ${sfl.num_clients}
 
 trainer:
   default_root_dir: "lightning_logs/"
