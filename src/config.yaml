@@ -1,0 +1,35 @@
+model:
+  config:
+    pretrained_model_name_or_path: "bert-base-uncased"
+    num_labels: 2
+
+data:
+  glue_dataset: "sst2"
+  batch_size: 32
+  num_workers: 1
+  model_type: "bert-base-uncased"
+  truncate: 100
+
+trainer:
+  default_root_dir: "lightning_logs/"
+
+  min_epochs: 1 # prevents early stopping
+  max_epochs: 5
+
+  accelerator: gpu
+  devices: 1
+
+  # mixed precision for extra speed-up
+  # precision: 16
+
+  # comment out these lines if you are NOT using a simulation dataset
+  limit_train_batches: 100
+  limit_val_batches: 10
+  limit_test_batches: 10
+
+  # perform a validation loop every N training epochs
+  check_val_every_n_epoch: 1
+
+  # set True to to ensure deterministic results
+  # makes training slower but gives more reproducibility than just setting seeds
+  deterministic: False

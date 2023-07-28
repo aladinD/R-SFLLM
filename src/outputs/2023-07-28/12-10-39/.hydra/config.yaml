@@ -1,0 +1,15 @@
+model:
+  name: CustomBertModelModule
+  config:
+    learning_rate: 1.0e-05
+    epsilon: 1.0e-06
+data:
+  name: BertDataModule
+  glue_dataset: sst2
+  batch_size: 32
+  num_workers: 1
+  model_type: bert-base-uncased
+  num_splits: None
+  truncate: 100
+trainer:
+  max_epochs: 2

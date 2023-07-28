@@ -7,13 +7,14 @@ from typing import Any, List, Tuple, Union
 from .bert_encoder import CustomBertEncoder
 
 
-class CustomBertModel(BertForSequenceClassification, LightningModule):
+class CustomBertModelModule(BertForSequenceClassification, LightningModule):
     """
     LitModule Custom Bert Model class for SFL.
     """
-    def __init__(self, config) -> None:
+    def __init__(self, 
+                 config) -> None:
         super().__init__(config)
-        
+
         # Create separate modules for embedding, attention, and head layers
         self.embedding = BertModel(config)
         self.attention = CustomBertEncoder(config)

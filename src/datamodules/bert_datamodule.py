@@ -6,6 +6,9 @@ from transformers import BertTokenizer
 
 
 class BertDataModule(LightningDataModule):
+    """
+    LightningDataModule Class for BERT models. Loads and preprocesses a specified GLUE dataset.
+    """
     def __init__(self, 
                  glue_dataset: str, 
                  batch_size: int,
@@ -23,10 +26,17 @@ class BertDataModule(LightningDataModule):
 
 
     def prepare_data(self) -> None:
+        """"
+        Loads the specified GLUE dataset.
+        """
         self.dataset = load_dataset('glue', self.glue_dataset)
 
 
     def setup(self, stage: str = None) -> None:
+        """
+        Preprocesses the loaded dataset.
+        """
+
         # Train/val split
         self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["validation"]
 
@@ -50,10 +60,16 @@ class BertDataModule(LightningDataModule):
 
         
     def train_dataloader(self) -> DataLoader:
+        """
+        Returns a Dataloader object for the training dataset.
+        """
         return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
 
     def val_dataloader(self) -> DataLoader:
+        """
+        Returns a Dataloader object for the validation dataset.
+        """
         return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
 
