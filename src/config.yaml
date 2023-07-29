@@ -22,7 +22,7 @@ trainer:
   min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
 
-  accelerator: gpu
+  accelerator: cuda
   # devices: 1
 
   # mixed precision for extra speed-up

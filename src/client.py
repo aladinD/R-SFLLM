@@ -1,4 +1,4 @@
-from models.bert_module import CustomBertModelModule
+from src.models.bert_module import CustomBertModelModule
 import pytorch_lightning as pl
 import torch
 from torch.nn.parameter import Parameter

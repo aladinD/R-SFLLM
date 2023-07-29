@@ -1,6 +1,6 @@
-from datamodules.bert_datamodule import BertDataModule
+from src.datamodules.bert_datamodule import BertDataModule
 import hydra
-from models.bert_module import CustomBertModelModule
+from src.models.bert_module import CustomBertModelModule
 import pytorch_lightning as pl
 from aggregator import Aggregator
 from client import Client
