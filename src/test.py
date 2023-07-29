@@ -5,6 +5,15 @@ import pytorch_lightning as pl
 from aggregator import Aggregator
 from client import Client
 
+import torch.multiprocessing as mp
+
+def parallel_train(client):
+    """
+    Wrapper function to train a client model seperately in a multiprocessing thread.
+    """
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id])
+    client.trainer.fit(client.model, client.train_data, client.val_data)
+
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
@@ -37,10 +46,23 @@ def main(cfg):
         print(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
 
         # Train client models
+
+        # Sequential
+        # for client in clients:
+        #     # Reset trainer to avoid max_epochs boundary
+        #     client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
+        #     client.trainer.fit(client.model, client.train_data, client.val_data)
+
+        # Parallel
+        processes = []
         for client in clients:
-            # Reset trainer to avoid max_epochs boundary
-            client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
-            client.trainer.fit(client.model, client.train_data, client.val_data)
+            p = mp.Process(target=parallel_train, args=(client,))
+            processes.append(p)
+            p.start()
+
+        for p in processes:
+            p.join()
+
 
         print("ALL CLIENTS TRAINED")
 
