@@ -2,7 +2,8 @@ sfl:
   num_clients: 2
   num_rounds: 2
   num_epochs: 2
-  process: "parallel" # or "sequential"
+  process: "sequential" # "parallel" # or "sequential"
+  ckpt_path: "lightning_logs/"
 
 model:
   config:

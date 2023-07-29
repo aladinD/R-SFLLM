@@ -86,6 +86,22 @@ class CustomBertModelModule(BertForSequenceClassification, LightningModule):
         return loss
     
 
+    def test_step(self, batch: Any, batch_idx) -> torch.Tensor:
+        inputs = {
+            "input_ids": batch[0],
+            "attention_mask": batch[1],
+            "labels": batch[2]
+        }
+        with torch.no_grad():
+            outputs = self.forward(**inputs)
+        loss = outputs.loss
+        accuracy = self.accuracy(torch.argmax(outputs.logits, dim=1), inputs["labels"])
+
+        self.log_dict({'test_loss': loss, 'test_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+
+        return loss
+    
+
     def predict_step(self, batch: Any, batch_idx) -> torch.tensor:
         inputs = {
             "input_ids": batch[0],

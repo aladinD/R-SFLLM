@@ -61,7 +61,7 @@ def main(cfg):
 
             for p in processes:
                 p.join()
-                
+
         else:
             print("INVALID PROCESS TYPE")
 
@@ -82,6 +82,11 @@ def main(cfg):
             client.update_model(aggregated_attentions)
             client.update_model(aggregated_heads)
             client.update_model(aggregated_embeddings)
+            client.trainer.save_checkpoint(cfg.sfl.ckpt_path + f"{client.id}_model.ckpt")
+
+            # Test
+            # test_result = client.trainer.test(client.model, dataloaders=client.val_data)
+            # print(f"Client {client.id} validation accuracy: {test_result[0]['test_acc']}")
 
         if r == cfg.sfl.num_rounds - 1:
             print("ALL ROUNDS COMPLETED")
