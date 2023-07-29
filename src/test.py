@@ -8,7 +8,7 @@ from client import Client
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
-    # Module instantiation
+    # Model and data module instantiations
     model = CustomBertModelModule.from_pretrained(**cfg.model.config)
     datamodule = BertDataModule(**cfg.data)
 
@@ -21,7 +21,7 @@ def main(cfg):
     # Instantiate clients 
     clients = []
     for i in range(cfg.sfl.num_clients):
-        client = Client(name=f"client_{i+1}",
+        client = Client(id=i,
                         model=model,
                         trainer=pl.Trainer(**cfg.trainer),
                         train_data=train_dls[i],
@@ -39,7 +39,7 @@ def main(cfg):
         # Train client models
         for client in clients:
             # Reset trainer to avoid max_epochs boundary
-            client.trainer = pl.Trainer(**cfg.trainer)
+            client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
             client.trainer.fit(client.model, client.train_data, client.val_data)
 
         print("ALL CLIENTS TRAINED")
@@ -61,30 +61,6 @@ def main(cfg):
 
         if r == cfg.sfl.num_rounds - 1:
             print("ALL ROUNDS COMPLETED")
-            
-
-# @hydra.main(version_base="1.3", config_path=".", config_name="config")
-# def main(cfg):
-#     # trainer = pl.Trainer(**cfg.trainer)
-#     # trainer.fit(model, datamodule=datamodule)
-
-#     # Module instantiation
-#     model = CustomBertModelModule.from_pretrained(**cfg.model.config)
-#     datamodule = BertDataModule(**cfg.data)
-
-#     # Data split
-#     datamodule.prepare_data()
-#     datamodule.setup()
-#     train_dls = datamodule.train_dataloader()
-#     val_dls = datamodule.val_dataloader()
-
-#     # Testing multiple instances
-#     for i in range(3):
-#         model = CustomBertModelModule.from_pretrained(**cfg.model.config)
-#         trainer = pl.Trainer(**cfg.trainer)
-#         trainer.fit(model, train_dls[i], val_dls[i])
-
-#         print(f"DONE TRAINING MODEL {i+1} of 3")
 
 
 if __name__ == "__main__":

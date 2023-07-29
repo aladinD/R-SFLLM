@@ -1,4 +1,4 @@
-from src.models.bert_module import CustomBertModelModule
+from models.bert_module import CustomBertModelModule
 import pytorch_lightning as pl
 import torch
 from torch.nn.parameter import Parameter
@@ -11,12 +11,12 @@ class Client:
     Client class for SFL.
     """
     def __init__(self, 
-                 name: str, 
+                 id: int, 
                  model: CustomBertModelModule,
                  trainer: pl.Trainer,
                  train_data: DataLoader,
                  val_data: DataLoader) -> None:
-        self.name = name
+        self.id = id
         self.model = model
         self.trainer = trainer
         self.train_data = train_data

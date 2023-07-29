@@ -25,7 +25,7 @@ def client():
     val_data = DataLoader(torch.randn(20, 3), batch_size=10)
 
     # Initialize the Client instance for testing
-    return Client(name="client1", model=model, trainer=trainer, train_data=train_data, val_data=val_data)
+    return Client(id=1, model=model, trainer=trainer, train_data=train_data, val_data=val_data)
         
 
 def test_update_model(client):
