@@ -4,10 +4,10 @@ from src.models.bert_module import CustomBertModelModule
 import pytorch_lightning as pl
 from aggregator import Aggregator
 from client import Client
-
 import torch.multiprocessing as mp
 
-def parallel_train(client):
+
+def parallel_train(client, cfg):
     """
     Wrapper function to train a client model seperately in a multiprocessing thread.
     """
@@ -46,22 +46,24 @@ def main(cfg):
         print(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
 
         # Train client models
+        if cfg.sfl.process == "sequential":
+            for client in clients:
+                # Reset trainer to avoid max_epochs boundary
+                client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
+                client.trainer.fit(client.model, client.train_data, client.val_data)
+                
+        elif cfg.sfl.process == "parallel":
+            processes = []
+            for client in clients:
+                p = mp.Process(target=parallel_train, args=(client,cfg,))
+                processes.append(p)
+                p.start()
 
-        # Sequential
-        # for client in clients:
-        #     # Reset trainer to avoid max_epochs boundary
-        #     client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
-        #     client.trainer.fit(client.model, client.train_data, client.val_data)
-
-        # Parallel
-        processes = []
-        for client in clients:
-            p = mp.Process(target=parallel_train, args=(client,))
-            processes.append(p)
-            p.start()
-
-        for p in processes:
-            p.join()
+            for p in processes:
+                p.join()
+                
+        else:
+            print("INVALID PROCESS TYPE")
 
 
         print("ALL CLIENTS TRAINED")

@@ -2,6 +2,7 @@ sfl:
   num_clients: 2
   num_rounds: 2
   num_epochs: 2
+  process: "parallel" # or "sequential"
 
 model:
   config:
