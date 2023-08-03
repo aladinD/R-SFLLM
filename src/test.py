@@ -2,40 +2,82 @@ from src.datamodules.bert_datamodule import BertDataModule
 import hydra
 from src.models.bert_module import CustomBertModelModule
 import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
 from aggregator import Aggregator
 from client import Client
 import torch.multiprocessing as mp
+from src import utils
+import torch
+import copy
+import uuid
 
 
-def parallel_train(client, cfg):
+def parallel_train(client, cfg, logger):
     """
-    Wrapper function to train a client model seperately in a multiprocessing thread.
+    Wrapper function to train and save a client model seperately in a multiprocessing thread.
     """
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id])
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
     client.trainer.fit(client.model, client.train_data, client.val_data)
+    # torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"model_{client.id}.ckpt")
 
+
+def load_dls(cfg, master: bool = False): 
+    """
+    Loads the train and val dataloaders.
+    """
+    if master is False:
+        datamodule = BertDataModule(**cfg.data)
+        datamodule.prepare_data()
+        datamodule.setup()
+        return datamodule.train_dataloader(), datamodule.val_dataloader()
+    else:
+        data_config = dict(cfg.data)
+        data_config['num_splits'] = None
+        datamodule = BertDataModule(**data_config)
+        datamodule.prepare_data()
+        datamodule.setup()
+        return datamodule.train_dataloader(), datamodule.val_dataloader()
+
+
+def evaluate_master_model(master_model, cfg, master_train_logger, master_val_logger):
+    """
+    Evaluates the master model on the complete train and validation dataset.
+    """
+    master_train_dl, master_val_dl = load_dls(cfg, master=True)
+
+    eval_config = dict(cfg.trainer)
+    eval_config['accelerator'] = None
+
+    master_trainer = pl.Trainer(**eval_config, gpus=0, logger=master_train_logger)
+    master_trainer.test(master_model, master_train_dl)
+
+    master_trainer = pl.Trainer(**eval_config, gpus=0, logger=master_val_logger)
+    master_trainer.test(master_model, master_val_dl)
+    
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
-    # Model and data module instantiations
-    model = CustomBertModelModule.from_pretrained(**cfg.model.config)
-    datamodule = BertDataModule(**cfg.data)
+    
+    # Loggers
+    log = utils.get_pylogger(__name__)
+    csv_logger = pl_loggers.CSVLogger("logs", name="sfl_logger")
+    master_train_logger = pl_loggers.CSVLogger("logs", name="master_train_logger")
+    master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
-    # Data split
-    datamodule.prepare_data()
-    datamodule.setup()
-    train_dls = datamodule.train_dataloader()
-    val_dls = datamodule.val_dataloader()
+    # Get dataloaders
+    train_dls, val_dls = load_dls(cfg)
 
     # Instantiate clients 
+    model = CustomBertModelModule.from_pretrained(**cfg.model.config)
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
                         model=model,
-                        trainer=pl.Trainer(**cfg.trainer),
+                        trainer=pl.Trainer(**cfg.trainer, logger=csv_logger),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
         clients.append(client)
+
 
     # Instantiate aggregator
     aggregator = Aggregator(name="sfl_aggregator")
@@ -43,30 +85,33 @@ def main(cfg):
     # SFL global round loop
     for r in range(cfg.sfl.num_rounds):
         
-        print(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
+        log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
 
         # Train client models
         if cfg.sfl.process == "sequential":
             for client in clients:
-                # Reset trainer to avoid max_epochs boundary
                 client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
                 client.trainer.fit(client.model, client.train_data, client.val_data)
                 
         elif cfg.sfl.process == "parallel":
             processes = []
             for client in clients:
-                p = mp.Process(target=parallel_train, args=(client,cfg,))
+                p = mp.Process(target=parallel_train, args=(client,cfg,csv_logger,))
                 processes.append(p)
                 p.start()
 
             for p in processes:
                 p.join()
 
+            # # Reload saved client models
+            # for client in clients:
+            #     checkpoint = torch.load(cfg.sfl.ckpt_path + f"model_{client.id}.ckpt")
+            #     client.model.load_state_dict(checkpoint)
+
         else:
-            print("INVALID PROCESS TYPE")
+            log.error("INVALID PROCESS TYPE from {parallel, sequential}")
 
-
-        print("ALL CLIENTS TRAINED")
+        log.info("ALL CLIENTS TRAINED")
 
         # Aggregate client models
         attentions = aggregator.accumulate_attentions([client.model for client in clients])
@@ -77,19 +122,26 @@ def main(cfg):
         aggregated_heads = aggregator.aggregate(heads)
         aggregated_embeddings = aggregator.aggregate(embeddings)
 
-        # Model update and save
+        # Model update
         for client in clients:
             client.update_model(aggregated_attentions)
             client.update_model(aggregated_heads)
             client.update_model(aggregated_embeddings)
-            client.trainer.save_checkpoint(cfg.sfl.ckpt_path + f"{client.id}_model.ckpt")
 
-            # Test
-            # test_result = client.trainer.test(client.model, dataloaders=client.val_data)
-            # print(f"Client {client.id} validation accuracy: {test_result[0]['test_acc']}")
+        log.info("ALL CLIENTS AGGREGATED")
+
+        # Evaluate master model
+        log.info("EVALUATING MASTER MODEL")
+        master_model = copy.deepcopy(clients[-1].model)
+        evaluate_master_model(master_model, cfg, master_train_logger, master_val_logger)
+
 
         if r == cfg.sfl.num_rounds - 1:
-            print("ALL ROUNDS COMPLETED")
+            log.info("ALL ROUNDS COMPLETED")
+
+            # Save master model
+            torch.save(master_model.state_dict(), cfg.sfl.master_path + f"{uuid.uuid4()}_master.ckpt")
+            log.info("MASTER MODEL SAVED")
 
 
 if __name__ == "__main__":
