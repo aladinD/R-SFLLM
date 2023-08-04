@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 2
-  num_rounds: 2
-  num_epochs: 2
+  num_clients: 8
+  num_rounds: 10
+  num_epochs: 10
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
@@ -13,10 +13,10 @@ model:
 
 data:
   glue_dataset: "sst2"
-  batch_size: 32
+  batch_size: 64
   num_workers: 1
   model_type: "bert-base-uncased"
-  # truncate: 100
+  truncate: 100
   num_splits: ${sfl.num_clients}
 
 trainer:

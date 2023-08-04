@@ -46,12 +46,12 @@ def evaluate_master_model(master_model, cfg, master_train_logger, master_val_log
     master_train_dl, master_val_dl = load_dls(cfg, master=True)
 
     eval_config = dict(cfg.trainer)
-    eval_config['accelerator'] = None
+    eval_config['devices'] = 1
 
-    master_trainer = pl.Trainer(**eval_config, gpus=0, logger=master_train_logger)
+    master_trainer = pl.Trainer(**eval_config, logger=master_train_logger)
     master_trainer.test(master_model, master_train_dl)
 
-    master_trainer = pl.Trainer(**eval_config, gpus=0, logger=master_val_logger)
+    master_trainer = pl.Trainer(**eval_config, logger=master_val_logger)
     master_trainer.test(master_model, master_val_dl)
     
 
@@ -60,7 +60,7 @@ def main(cfg):
     
     # Loggers
     log = utils.get_pylogger(__name__)
-    csv_logger = pl_loggers.CSVLogger("logs", name="sfl_logger")
+    sfl_logger = pl_loggers.CSVLogger("logs", name="sfl_logger")
     master_train_logger = pl_loggers.CSVLogger("logs", name="master_train_logger")
     master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
@@ -73,7 +73,7 @@ def main(cfg):
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
                         model=model,
-                        trainer=pl.Trainer(**cfg.trainer, logger=csv_logger),
+                        trainer=pl.Trainer(**cfg.trainer, logger=sfl_logger),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
         clients.append(client)
@@ -96,7 +96,7 @@ def main(cfg):
         elif cfg.sfl.process == "parallel":
             processes = []
             for client in clients:
-                p = mp.Process(target=parallel_train, args=(client,cfg,csv_logger,))
+                p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
                 processes.append(p)
                 p.start()
 
@@ -132,15 +132,20 @@ def main(cfg):
 
         # Evaluate master model
         log.info("EVALUATING MASTER MODEL")
-        master_model = copy.deepcopy(clients[-1].model)
+        # master_model = copy.deepcopy(clients[-1].model)
+        master_model = clients[-1].model
         evaluate_master_model(master_model, cfg, master_train_logger, master_val_logger)
+
+        # # Save master model
+        # torch.save(master_model.state_dict(), cfg.sfl.master_path + f"{uuid.uuid4()}_master.pt")
+        # log.info("MASTER MODEL SAVED")
 
 
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")
 
             # Save master model
-            torch.save(master_model.state_dict(), cfg.sfl.master_path + f"{uuid.uuid4()}_master.ckpt")
+            torch.save(master_model.state_dict(), cfg.sfl.master_path + f"{uuid.uuid4()}_master.pt")
             log.info("MASTER MODEL SAVED")
 
 
