@@ -10,6 +10,16 @@ from src import utils
 import torch
 import copy
 import uuid
+import time
+
+
+def models_equal(model1, model2):
+    for (name1, param1), (name2, param2) in zip(model1.named_parameters(), model2.named_parameters()):
+        if name1.startswith("bert.encoder") or name1.startswith("classifier") or name1.startswith("bert.pooler") or name1.startswith("bert.embeddings"):
+            if torch.any(param1 != param2):
+                print("NOT EQUAL")
+                return False
+    return True
 
 
 def parallel_train(client, cfg, logger):
@@ -18,7 +28,6 @@ def parallel_train(client, cfg, logger):
     """
     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
     client.trainer.fit(client.model, client.train_data, client.val_data)
-    # torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"model_{client.id}.ckpt")
 
 
 def load_dls(cfg, master: bool = False): 
@@ -65,7 +74,8 @@ def main(cfg):
     master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
     # Get dataloaders
-    train_dls, val_dls = load_dls(cfg)
+    train_dls, val_dls = load_dls(cfg, master=False)
+    print("DATALOADER SIZE PER CLIENT : ", len(train_dls[0]))
 
     # Instantiate clients 
     model = CustomBertModelModule.from_pretrained(**cfg.model.config)
@@ -73,19 +83,20 @@ def main(cfg):
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
                         model=model,
-                        trainer=pl.Trainer(**cfg.trainer, logger=sfl_logger),
+                        trainer=pl.Trainer(**cfg.trainer, devices=[i]),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
         clients.append(client)
 
-
     # Instantiate aggregator
-    aggregator = Aggregator(name="sfl_aggregator")
+    aggregator = Aggregator(name="aggregator")
 
     # SFL global round loop
     for r in range(cfg.sfl.num_rounds):
         
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
+
+        cfg.sfl.process = "sequential"
 
         # Train client models
         if cfg.sfl.process == "sequential":
@@ -102,11 +113,6 @@ def main(cfg):
 
             for p in processes:
                 p.join()
-
-            # # Reload saved client models
-            # for client in clients:
-            #     checkpoint = torch.load(cfg.sfl.ckpt_path + f"model_{client.id}.ckpt")
-            #     client.model.load_state_dict(checkpoint)
 
         else:
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
@@ -132,22 +138,17 @@ def main(cfg):
 
         # Evaluate master model
         log.info("EVALUATING MASTER MODEL")
-        # master_model = copy.deepcopy(clients[-1].model)
         master_model = clients[-1].model
         evaluate_master_model(master_model, cfg, master_train_logger, master_val_logger)
 
-        # # Save master model
-        # torch.save(master_model.state_dict(), cfg.sfl.master_path + f"{uuid.uuid4()}_master.pt")
-        # log.info("MASTER MODEL SAVED")
-
+        # Save master model
+        torch.save(master_model.state_dict(), cfg.sfl.master_path + "master_model.pt")
+        log.info("MASTER MODEL SAVED")
 
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")
 
-            # Save master model
-            torch.save(master_model.state_dict(), cfg.sfl.master_path + f"{uuid.uuid4()}_master.pt")
-            log.info("MASTER MODEL SAVED")
-
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn')
     main()

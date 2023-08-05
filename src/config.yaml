@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 8
-  num_rounds: 10
-  num_epochs: 10
+  num_clients: 3
+  num_rounds: 3
+  num_epochs: 3
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
@@ -13,16 +13,16 @@ model:
 
 data:
   glue_dataset: "sst2"
-  batch_size: 64
+  batch_size: 128
   num_workers: 1
   model_type: "bert-base-uncased"
-  truncate: 100
+  truncate: 500
   num_splits: ${sfl.num_clients}
 
 trainer:
   default_root_dir: "lightning_logs/"
 
-  min_epochs: 1 # prevents early stopping
+  # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
 
   accelerator: cuda
@@ -32,12 +32,12 @@ trainer:
   # precision: 16
 
   # comment out these lines if you are NOT using a simulation dataset
-  limit_train_batches: 100
-  limit_val_batches: 10
-  limit_test_batches: 10
+  # limit_train_batches: 100
+  # limit_val_batches: 10
+  # limit_test_batches: 10
 
   # perform a validation loop every N training epochs
-  check_val_every_n_epoch: 1
+  # check_val_every_n_epoch: 1
 
   # set True to to ensure deterministic results
   # makes training slower but gives more reproducibility than just setting seeds

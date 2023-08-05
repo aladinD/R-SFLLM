@@ -76,8 +76,6 @@ class BertDataModule(LightningDataModule):
         else:
             return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
 
-        # return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
-
 
     def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
         """
