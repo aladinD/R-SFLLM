@@ -28,6 +28,7 @@ def parallel_train(client, cfg, logger):
     """
     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
     client.trainer.fit(client.model, client.train_data, client.val_data)
+    torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
 
 def load_dls(cfg, master: bool = False): 
@@ -96,8 +97,6 @@ def main(cfg):
         
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
 
-        cfg.sfl.process = "sequential"
-
         # Train client models
         if cfg.sfl.process == "sequential":
             for client in clients:
@@ -105,6 +104,13 @@ def main(cfg):
                 client.trainer.fit(client.model, client.train_data, client.val_data)
                 
         elif cfg.sfl.process == "parallel":
+
+            # Load client models
+            if r!= 0:
+                client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
+            else:
+                pass
+
             processes = []
             for client in clients:
                 p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
@@ -118,6 +124,10 @@ def main(cfg):
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
 
         log.info("ALL CLIENTS TRAINED")
+
+        # Reload all clients
+        for client in clients:
+            client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
 
         # Aggregate client models
         attentions = aggregator.accumulate_attentions([client.model for client in clients])
@@ -136,14 +146,13 @@ def main(cfg):
 
         log.info("ALL CLIENTS AGGREGATED")
 
+        # Save master model
+        torch.save(clients[-1].model.state_dict(), cfg.sfl.master_path + "save_master_model.pt")
+        log.info("MASTER MODEL SAVED")
+
         # Evaluate master model
         log.info("EVALUATING MASTER MODEL")
-        master_model = clients[-1].model
-        evaluate_master_model(master_model, cfg, master_train_logger, master_val_logger)
-
-        # Save master model
-        torch.save(master_model.state_dict(), cfg.sfl.master_path + "master_model.pt")
-        log.info("MASTER MODEL SAVED")
+        evaluate_master_model(clients[-1].model, cfg, master_train_logger, master_val_logger)
 
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")
