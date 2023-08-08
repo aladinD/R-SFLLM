@@ -11,24 +11,16 @@ import torch
 import copy
 import uuid
 import time
+from joblib import Parallel, delayed
 
 
-def models_equal(model1, model2):
-    for (name1, param1), (name2, param2) in zip(model1.named_parameters(), model2.named_parameters()):
-        if name1.startswith("bert.encoder") or name1.startswith("classifier") or name1.startswith("bert.pooler") or name1.startswith("bert.embeddings"):
-            if torch.any(param1 != param2):
-                print("NOT EQUAL")
-                return False
-    return True
-
-
-def parallel_train(client, cfg, logger):
-    """
-    Wrapper function to train and save a client model seperately in a multiprocessing thread.
-    """
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
-    client.trainer.fit(client.model, client.train_data, client.val_data)
-    torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+# def parallel_train(client, cfg, logger):
+#     """
+#     Wrapper function to train and save a client model seperately in a multiprocessing thread.
+#     """
+#     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
+#     client.trainer.fit(client.model, client.train_data, client.val_data)
+#     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
 
 def load_dls(cfg, master: bool = False): 
@@ -100,8 +92,14 @@ def main(cfg):
         # Train client models
         if cfg.sfl.process == "sequential":
             for client in clients:
-                client.trainer = pl.Trainer(**cfg.trainer, devices=[0])
+                if r!= 0:
+                    client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
+                else:
+                    pass
+
+                client.trainer = pl.Trainer(**cfg.trainer, devices=[3])
                 client.trainer.fit(client.model, client.train_data, client.val_data)
+                torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
                 
         elif cfg.sfl.process == "parallel":
 
@@ -111,14 +109,25 @@ def main(cfg):
             else:
                 pass
 
-            processes = []
-            for client in clients:
-                p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
-                processes.append(p)
-                p.start()
+            def parallel_train(client, cfg, logger):
+                """
+                Wrapper function to train and save a client model seperately in a multiprocessing thread.
+                """
+                client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
+                client.trainer.fit(client.model, client.train_data, client.val_data)
+                torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
-            for p in processes:
-                p.join()
+            Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, sfl_logger) for client in clients)
+
+
+            # processes = []
+            # for client in clients:
+            #     p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
+            #     processes.append(p)
+            #     p.start()
+
+            # for p in processes:
+            #     p.join()
 
         else:
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
@@ -138,21 +147,22 @@ def main(cfg):
         aggregated_heads = aggregator.aggregate(heads)
         aggregated_embeddings = aggregator.aggregate(embeddings)
 
-        # Model update
+        # Model update & save
         for client in clients:
             client.update_model(aggregated_attentions)
             client.update_model(aggregated_heads)
             client.update_model(aggregated_embeddings)
+            torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
         log.info("ALL CLIENTS AGGREGATED")
 
         # Save master model
-        torch.save(clients[-1].model.state_dict(), cfg.sfl.master_path + "save_master_model.pt")
+        torch.save(clients[-1].model.state_dict(), cfg.sfl.master_path + f"master_round_{r}.pt")
         log.info("MASTER MODEL SAVED")
 
         # Evaluate master model
         log.info("EVALUATING MASTER MODEL")
-        evaluate_master_model(clients[-1].model, cfg, master_train_logger, master_val_logger)
+        # evaluate_master_model(clients[-1].model, cfg, master_train_logger, master_val_logger)
 
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")
