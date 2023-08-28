@@ -1,7 +1,8 @@
 import torch
 from torch.nn.parameter import Parameter
 from typing import List, Dict
-from src.models.bert_module import CustomBertModelModule
+# from src.models.bert_module import BERTModule
+from pytorch_lightning import LightningModule
 
 
 class Aggregator:
@@ -12,7 +13,7 @@ class Aggregator:
         self.name = name
 
       
-   def accumulate_attentions(self, client_models: List[CustomBertModelModule]) -> List[Dict]:
+   def accumulate_attentions(self, client_models: List[LightningModule]) -> List[Dict]:
     """
     Accumulates/Collects the attentions of all clients and returns a List of 
     Dicts including the parameter names and values as a key-value pair.
@@ -30,7 +31,7 @@ class Aggregator:
     return attentions
    
    
-   def accumulate_heads(self, client_models: List[CustomBertModelModule]) -> List[Dict]:
+   def accumulate_heads(self, client_models: List[LightningModule]) -> List[Dict]:
     """
     Accumulates/Collects the heads (classifier and pooler) of all clients and 
     returns a List of Dicts including the parameter names and values as a 
@@ -49,7 +50,7 @@ class Aggregator:
     return heads
 
 
-   def accumulate_embeddings(self, client_models: List[CustomBertModelModule]) -> List[Dict]:
+   def accumulate_embeddings(self, client_models: List[LightningModule]) -> List[Dict]:
     """
     Accumulates/Collects the embeddings of all clients and returns a List of 
     Dicts including the parameter names and values as a key-value pair.

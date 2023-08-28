@@ -10,9 +10,10 @@ from transformers.models.bert.modeling_bert import (BertEmbeddings, BertEncoder,
                                                    BertPooler, BertPreTrainedModel)
 
 
-class CustomBertModelModule(BertPreTrainedModel, LightningModule):
+class BERTModule(BertPreTrainedModel, LightningModule):
     """
-    LitModule Custom Bert Model class that exposes embeddings, attentions, and head.
+    LitModule BertForSequenceClassification Model with the option to add noise to
+    the word_embeddings.
     """
     def __init__(self, config):
         super().__init__(config)
@@ -35,6 +36,9 @@ class CustomBertModelModule(BertPreTrainedModel, LightningModule):
 
         # Assign performance metrics
         self.accuracy = Accuracy(task="binary", num_classes=2)  # Add to config
+
+        # Assign noise
+        self.add_noise = False
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -123,8 +127,7 @@ class CustomBertModelModule(BertPreTrainedModel, LightningModule):
 
         # Add noise to the input embeddings
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        add_noise = False
-        if add_noise:
+        if self.add_noise:
             noise = torch.normal(mean=0, std=0.1, size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:

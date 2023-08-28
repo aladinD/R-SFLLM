@@ -1,10 +1,11 @@
 from src.datamodules.bert_datamodule import BertDataModule
+from src.datamodules.glue_datamodule import GLUEDataModule
 import hydra
-from src.models.bert_module import CustomBertModelModule
+from src.models.bert_module import BERTModule
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
-from aggregator import Aggregator
-from client import Client
+from sfl.aggregator import Aggregator
+from sfl.client import Client
 import torch.multiprocessing as mp
 from src import utils
 import torch
@@ -29,14 +30,14 @@ def load_dls(cfg, master: bool = False):
     Loads the train and val dataloaders.
     """
     if master is False:
-        datamodule = BertDataModule(**cfg.data)
+        datamodule = GLUEDataModule(**cfg.data)
         datamodule.prepare_data()
         datamodule.setup()
         return datamodule.train_dataloader(), datamodule.val_dataloader()
     else:
         data_config = dict(cfg.data)
         data_config['num_splits'] = None
-        datamodule = BertDataModule(**data_config)
+        datamodule = GLUEDataModule(**data_config)
         datamodule.prepare_data()
         datamodule.setup()
         return datamodule.train_dataloader(), datamodule.val_dataloader()
@@ -72,7 +73,7 @@ def main(cfg):
     print("DATALOADER SIZE PER CLIENT : ", len(train_dls[0]))
 
     # Instantiate clients 
-    model = CustomBertModelModule.from_pretrained(**cfg.model.config)
+    model = BERTModule.from_pretrained(**cfg.model.config)
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,

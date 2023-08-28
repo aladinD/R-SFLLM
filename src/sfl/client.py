@@ -1,4 +1,5 @@
-from src.models.bert_module import CustomBertModelModule
+# from src.models.bert_module import BERTModule
+from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
 import torch
 from torch.nn.parameter import Parameter
@@ -12,7 +13,7 @@ class Client:
     """
     def __init__(self, 
                  id: int, 
-                 model: CustomBertModelModule,
+                 model: LightningModule,
                  trainer: pl.Trainer,
                  train_data: DataLoader,
                  val_data: DataLoader) -> None:
