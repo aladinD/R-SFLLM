@@ -25,7 +25,7 @@ import copy
 #     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
 
-def load_dls(cfg, master: bool = False): 
+def get_dls(cfg, master: bool = False): 
     """
     Loads the train and val dataloaders.
     """
@@ -69,7 +69,7 @@ def main(cfg):
     master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
     # Get dataloaders
-    train_dls, val_dls = load_dls(cfg, master=False)
+    train_dls, val_dls = get_dls(cfg, master=False)
     print("DATALOADER SIZE PER CLIENT : ", len(train_dls[0]))
 
     # Instantiate clients 

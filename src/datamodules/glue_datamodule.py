@@ -39,14 +39,7 @@ class GLUEDataModule(LightningDataModule):
         """
 
         # Train/val split
-        if self.glue_dataset == "sst2":
-            self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["validation"]
-        
-        elif self.glue_dataset == "ag":
-            self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["test"]
-
-        else:
-            raise ValueError(f"Invalid glue_dataset value: {self.glue_dataset}. Currently supported: 'sst2' or 'ag'.")
+        self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["validation"]
 
         # Truncation
         if self.truncate is not None:
@@ -96,16 +89,16 @@ class GLUEDataModule(LightningDataModule):
             attention_mask = torch.tensor(encodings['attention_mask'])
             dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
         
-        elif self.glue_dataset == "ag":
+        elif self.glue_dataset == "cola":
             tokenizer = BertTokenizer.from_pretrained(self.model_type)
-            encodings = self.tokenizer(dataset["text"], truncation=True, padding=True)
+            encodings = tokenizer(dataset["sentence"], truncation=True, padding=True)
             labels = torch.tensor(dataset["label"], dtype=torch.long)
             input_ids = torch.tensor(encodings['input_ids'])
             attention_mask = torch.tensor(encodings['attention_mask'])
             dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
 
         else: 
-            raise ValueError(f"Invalid glue_dataset value: {self.glue_dataset}. Currently supported: 'sst2' or 'ag'.")
+            raise ValueError(f"Invalid glue_dataset value: {self.glue_dataset}. Currently supported: 'sst2' or 'cola'.")
     
         return dataset 
 
