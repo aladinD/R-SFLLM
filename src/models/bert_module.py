@@ -274,7 +274,7 @@ class BERTModule(BertPreTrainedModel, LightningModule):
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
         optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
         scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=264)  # Add to config! 
-    
+        # This scheduler is not compatible with the PL workflow! 
         return {
             "optimizer": optimizer
             # "scheduler": scheduler
