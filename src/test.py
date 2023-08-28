@@ -25,6 +25,15 @@ import copy
 #     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
 
+def parallel_train(client, cfg, logger):
+    """
+    Wrapper function to train and save a client model seperately in a multiprocessing thread.
+    """
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
+    client.trainer.fit(client.model, client.train_data, client.val_data)
+    torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+
+
 def get_dls(cfg, master: bool = False): 
     """
     Loads the train and val dataloaders.
@@ -47,7 +56,7 @@ def evaluate_master_model(master_model, cfg, master_train_logger, master_val_log
     """
     Evaluates the master model on the complete train and validation dataset.
     """
-    master_train_dl, master_val_dl = load_dls(cfg, master=True)
+    master_train_dl, master_val_dl = get_dls(cfg, master=True)
 
     eval_config = dict(cfg.trainer)
     eval_config['devices'] = 1
@@ -70,7 +79,7 @@ def main(cfg):
 
     # Get dataloaders
     train_dls, val_dls = get_dls(cfg, master=False)
-    print("DATALOADER SIZE PER CLIENT : ", len(train_dls[0]))
+    log.info("DATA LOADED WITH DATALOADER SIZE PER CLIENT : %s", len(train_dls[0]))
 
     # Instantiate clients 
     model = BERTModule.from_pretrained(**cfg.model.config)
@@ -106,18 +115,11 @@ def main(cfg):
         elif cfg.sfl.process == "parallel":
 
             # Load client models
-            if r!= 0:
-                client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
-            else:
-                pass
-
-            def parallel_train(client, cfg, logger):
-                """
-                Wrapper function to train and save a client model seperately in a multiprocessing thread.
-                """
-                client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
-                client.trainer.fit(client.model, client.train_data, client.val_data)
-                torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+            for client in clients:
+                if r!= 0:
+                    client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
+                else:
+                    pass
 
             Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, sfl_logger) for client in clients)
 
