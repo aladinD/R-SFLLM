@@ -120,12 +120,6 @@ def main(cfg):
             Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, sfl_logger) for client in clients)
 
 
-<<<<<<< HEAD
-
-
-
-=======
->>>>>>> d0e267e3ce9c5ceb99015ba4109fe137d2e9eb78
             # processes = []
             # for client in clients:
             #     p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
