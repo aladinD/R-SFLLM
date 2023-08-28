@@ -3,8 +3,8 @@ import hydra
 from src.models.bert_module import BERTModule
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
-from ..sfl.aggregator import Aggregator
-from ..sfl.client import Client
+from sfl.aggregator import Aggregator
+from sfl.client import Client
 import torch.multiprocessing as mp
 from src import utils
 import torch
@@ -29,10 +29,12 @@ def main(cfg):
     client = Client(id=0,
                     model=model,
                     trainer=pl.Trainer(**cfg.trainer, devices=[0]),
+                    logger=pl.loggers.CSVLogger("logs", name=f"test_log"),
                     train_data=train_dl[0],
                     val_data=val_dl[0])
 
     # Train model
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=client.logger)
     client.trainer.fit(client.model, client.train_data, client.val_data)
 
     # Evaluate model

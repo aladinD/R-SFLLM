@@ -16,20 +16,11 @@ from joblib import Parallel, delayed
 import copy
 
 
-# def parallel_train(client, cfg, logger):
-#     """
-#     Wrapper function to train and save a client model seperately in a multiprocessing thread.
-#     """
-#     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
-#     client.trainer.fit(client.model, client.train_data, client.val_data)
-#     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
-
-
 def parallel_train(client, cfg, logger):
     """
     Wrapper function to train and save a client model seperately in a multiprocessing thread.
     """
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=client.logger, log_every_n_steps=30)
     client.trainer.fit(client.model, client.train_data, client.val_data)
     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
@@ -74,8 +65,8 @@ def main(cfg):
     # Loggers
     log = utils.get_pylogger(__name__)
     sfl_logger = pl_loggers.CSVLogger("logs", name="sfl_logger")
-    master_train_logger = pl_loggers.CSVLogger("logs", name="master_train_logger")
-    master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
+    # master_train_logger = pl_loggers.CSVLogger("logs", name="master_train_logger")
+    # master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
     # Get dataloaders
     train_dls, val_dls = get_dls(cfg, master=False)
@@ -88,6 +79,7 @@ def main(cfg):
         client = Client(id=i,
                         model=copy.deepcopy(model),
                         trainer=pl.Trainer(**cfg.trainer, devices=[i]),
+                        logger=pl.loggers.CSVLogger("logs/clients", name=f"client_{i}_logger"),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
         clients.append(client)
@@ -122,16 +114,6 @@ def main(cfg):
                     pass
 
             Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, sfl_logger) for client in clients)
-
-
-            # processes = []
-            # for client in clients:
-            #     p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
-            #     processes.append(p)
-            #     p.start()
-
-            # for p in processes:
-            #     p.join()
 
         else:
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
@@ -175,3 +157,29 @@ def main(cfg):
 if __name__ == "__main__":
     mp.set_start_method('spawn')
     main()
+
+
+
+
+
+
+
+
+
+
+# def parallel_train(client, cfg, logger):
+#     """
+#     Wrapper function to train and save a client model seperately in a multiprocessing thread.
+#     """
+#     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
+#     client.trainer.fit(client.model, client.train_data, client.val_data)
+#     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+
+# processes = []
+# for client in clients:
+#     p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
+#     processes.append(p)
+#     p.start()
+
+# for p in processes:
+#     p.join()

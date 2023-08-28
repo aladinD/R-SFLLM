@@ -8,7 +8,7 @@ from transformers.modeling_outputs import (BaseModelOutputWithPoolingAndCrossAtt
                                            SequenceClassifierOutput)
 from transformers.models.bert.modeling_bert import (BertEmbeddings, BertEncoder,
                                                    BertPooler, BertPreTrainedModel)
-
+from transformers import get_linear_schedule_with_warmup
 
 class BERTModule(BertPreTrainedModel, LightningModule):
     """
@@ -218,7 +218,9 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         loss = outputs.loss
         accuracy = self.accuracy(torch.argmax(outputs.logits, dim=1), inputs["labels"])
         
-        self.log_dict({'train_loss': loss, 'train_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+        # self.log_dict({'train_loss': loss, 'train_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train_loss", loss, on_epoch=True, on_step=False)
+        self.log("train_acc", accuracy, on_epoch=True, on_step=False)
 
         return loss
     
@@ -234,7 +236,9 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         loss = outputs.loss
         accuracy = self.accuracy(torch.argmax(outputs.logits, dim=1), inputs["labels"])
 
-        self.log_dict({'val_loss': loss, 'val_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+        # self.log_dict({'val_loss': loss, 'val_acc': accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("val_loss", loss, on_epoch=True, on_step=False)
+        self.log("val_acc", accuracy, on_epoch=True, on_step=False)
 
         return loss
     
@@ -269,8 +273,9 @@ class BERTModule(BertPreTrainedModel, LightningModule):
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
         optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
-        # scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256)  # Add to config! 
+        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=264)  # Add to config! 
+    
         return {
             "optimizer": optimizer
-           # "lr_scheduler": scheduler
+            # "scheduler": scheduler
         }

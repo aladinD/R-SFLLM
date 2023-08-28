@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 3
-  num_rounds: 3
-  num_epochs: 3
+  num_clients: 8
+  num_rounds: 10
+  num_epochs: 50
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
@@ -20,7 +20,7 @@ data:
   num_splits: ${sfl.num_clients}
 
 trainer:
-  default_root_dir: "lightning_logs/"
+  # default_root_dir: "lightning_logs/"
 
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
