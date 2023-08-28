@@ -12,6 +12,7 @@ import copy
 import uuid
 import time
 from joblib import Parallel, delayed
+import copy
 
 
 # def parallel_train(client, cfg, logger):
@@ -75,7 +76,7 @@ def main(cfg):
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
-                        model=model,
+                        model=copy.deepcopy(model),
                         trainer=pl.Trainer(**cfg.trainer, devices=[i]),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
