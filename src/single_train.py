@@ -48,10 +48,10 @@ def main(cfg):
 
     print("LEN : ", len(train_dl[0]))
     print("TRAIN STEPS :", model.scheduler_training_steps)
-    
+
     client = Client(id=0,
                     model=copy.deepcopy(model),
-                    trainer=pl.Trainer(**cfg.trainer, devices=[0]),
+                    trainer=pl.Trainer(**cfg.trainer, devices=[7]),
                     logger=pl.loggers.CSVLogger("logs", name=f"test_log"),
                     train_data=train_dl[0],
                     val_data=val_dl[0])
