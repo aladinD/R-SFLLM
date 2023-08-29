@@ -17,24 +17,13 @@ import copy
 import random
 import numpy as np
 
-# Set random seed for PyTorch
-seed = 42
-torch.manual_seed(seed)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
 
-# Set random seed for Python's built-in random module
-random.seed(seed)
-
-# Set random seed for NumPy
-np.random.seed(seed)
-
-
-def parallel_train(client, cfg, logger):
+def parallel_train(client, cfg, r):
     """
     Wrapper function to train and save a client model seperately in a multiprocessing thread.
     """
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=client.logger, log_every_n_steps=30)
+    logger = pl.loggers.CSVLogger(save_dir="logs/clients", name=f"client_{client.id}_logger", version=f"round_{r}")
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger, log_every_n_steps=1)
     client.trainer.fit(client.model, client.train_data, client.val_data)
     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
 
@@ -82,41 +71,60 @@ def main(cfg):
     # master_train_logger = pl_loggers.CSVLogger("logs", name="master_train_logger")
     # master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
+    # Seeding
+    log.info("SEEDING")
+    seed = 42
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    random.seed(seed)
+    np.random.seed(seed)
+
     # Get dataloaders
+    log.info("LOADING DATA")
     train_dls, val_dls = get_dls(cfg, master=False)
     log.info("DATA LOADED WITH DATALOADER SIZE PER CLIENT : %s", len(train_dls[0]))
 
-    # Instantiate clients 
+    # Instantiate model
+    log.info("INSTANTIATING MODEL")
     model = BERTModule.from_pretrained(**cfg.model.config)
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
+
+    # Instantiate clients
+    log.info("INSTANTIATING CLIENTS")
 
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
                         model=copy.deepcopy(model),
                         trainer=pl.Trainer(**cfg.trainer, devices=[i]),
-                        logger=pl.loggers.CSVLogger("logs/clients", name=f"client_{i}_logger"),
+                        logger=pl.loggers.CSVLogger(save_dir="logs/clients", name=f"client_{i}_logger", version="testtt"),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
         clients.append(client)
 
     # Instantiate aggregator
+    log.info("INSTANTIATING AGGREGATOR")
     aggregator = Aggregator(name="aggregator")
 
     # SFL global round loop
+    log.info("STARTING SFL TRAINING")
     for r in range(cfg.sfl.num_rounds):
         
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
 
-        # Train client models
+        # Client training loop
         if cfg.sfl.process == "sequential":
+
+            # Load client models
             for client in clients:
                 if r!= 0:
                     client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
                 else:
                     pass
 
-                client.trainer = pl.Trainer(**cfg.trainer, devices=[3])
+                # Train client models sequentially
+                client.trainer = pl.Trainer(**cfg.trainer, devices=[0]) # Fixed GPU device to GPU:0
                 client.trainer.fit(client.model, client.train_data, client.val_data)
                 torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
                 
@@ -129,7 +137,8 @@ def main(cfg):
                 else:
                     pass
 
-            Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, sfl_logger) for client in clients)
+            # Train client models in parallel
+            Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, r) for client in clients)
 
         else:
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
@@ -163,7 +172,7 @@ def main(cfg):
         log.info("MASTER MODEL SAVED")
 
         # Evaluate master model
-        log.info("EVALUATING MASTER MODEL")
+        # log.info("EVALUATING MASTER MODEL")
         # evaluate_master_model(clients[-1].model, cfg, master_train_logger, master_val_logger)
 
         if r == cfg.sfl.num_rounds - 1:
