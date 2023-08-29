@@ -54,33 +54,38 @@ def get_dls(cfg, master: bool = False):
         return datamodule.train_dataloader(), datamodule.val_dataloader()
 
 
-def evaluate_master_model(master_model, cfg, r):
+def evaluate_master_model(model, cfg, r):
     """
     Evaluates the master model on the complete train and validation dataset.
     """
     master_train_dl, master_val_dl = get_dls(cfg, master=True)
 
+    master = Client(id=99,
+                    model=copy.deepcopy(model),
+                    trainer=None,
+                    train_data=master_train_dl,
+                    val_data=master_val_dl)
+    
+    master.model.load_state_dict(torch.load(cfg.sfl.master_path + f"master_round_{r}.pt"))
+    
     eval_config = dict(cfg.trainer)
     eval_config['devices'] = 1
 
     train_logger = pl.loggers.CSVLogger(save_dir="logs/master/", name="train", version=f"round_{r}")
-    validation_logger = pl.loggers.CSVLogger(save_dir="logs/master/validation", name="validation", version=f"round_{r}")
+    validation_logger = pl.loggers.CSVLogger(save_dir="logs/master/", name="validation", version=f"round_{r}")
 
     train_trainer = pl.Trainer(**eval_config, logger=train_logger)
-    train_trainer.test(master_model, master_train_dl)
+    train_trainer.test(master.model, master_train_dl)
 
     validation_trainer = pl.Trainer(**eval_config, logger=validation_logger)
-    validation_trainer.test(master_model, master_val_dl)
+    validation_trainer.test(master.model, master_val_dl)
     
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
     
-    # Loggers
+    # Process logger
     log = utils.get_pylogger(__name__)
-    sfl_logger = pl_loggers.CSVLogger("logs", name="sfl_logger")
-    # master_train_logger = pl_loggers.CSVLogger("logs", name="master_train_logger")
-    # master_val_logger = pl_loggers.CSVLogger("logs", name="master_val_logger")
 
     # Get dataloaders
     log.info("LOADING DATA")
@@ -91,9 +96,10 @@ def main(cfg):
     log.info("INSTANTIATING MODEL")
     model = BERTModule.from_pretrained(**cfg.model.config)
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
-    model.add_noise = True
+    model.add_noise = False
 
     # Instantiate clients
+
     log.info("INSTANTIATING CLIENTS")
 
     clients = []
@@ -101,7 +107,6 @@ def main(cfg):
         client = Client(id=i,
                         model=copy.deepcopy(model),
                         trainer=pl.Trainer(**cfg.trainer, devices=[i]),
-                        logger=pl.loggers.CSVLogger(save_dir="logs/clients", name=f"client_{i}_logger", version="testtt"),
                         train_data=train_dls[i],
                         val_data=val_dls[i])
         clients.append(client)
@@ -178,7 +183,7 @@ def main(cfg):
 
         # Evaluate master model
         log.info("EVALUATING MASTER MODEL")
-        evaluate_master_model(clients[-1].model, cfg, r)
+        evaluate_master_model(model, cfg, r)
 
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")

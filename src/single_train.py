@@ -52,12 +52,12 @@ def main(cfg):
     client = Client(id=0,
                     model=copy.deepcopy(model),
                     trainer=pl.Trainer(**cfg.trainer, devices=[7]),
-                    logger=pl.loggers.CSVLogger("logs", name=f"test_log"),
                     train_data=train_dl[0],
                     val_data=val_dl[0])
 
     # Train model
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=client.logger)
+    logger = pl.loggers.CSVLogger("logs", name=f"test_log")
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1)
     client.trainer.fit(client.model, client.train_data, client.val_data)
 
     # Evaluate model

@@ -16,13 +16,11 @@ class Client:
                  id: int, 
                  model: LightningModule,
                  trainer: pl.Trainer,
-                 logger: pl_logger,
                  train_data: DataLoader,
                  val_data: DataLoader) -> None:
         self.id = id
         self.model = model
         self.trainer = trainer
-        self.logger = logger
         self.train_data = train_data
         self.val_data = val_data
 
