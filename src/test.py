@@ -158,6 +158,7 @@ def main(cfg):
         aggregated_heads = aggregator.aggregate(heads)
         aggregated_embeddings = aggregator.aggregate(embeddings)
 
+
         # Model update & save
         for client in clients:
             client.update_model(aggregated_attentions)
@@ -180,31 +181,6 @@ def main(cfg):
 
 
 if __name__ == "__main__":
-    mp.set_start_method('spawn')
+    # Multiprocessing setting 
+    # mp.set_start_method('spawn')
     main()
-
-
-
-
-
-
-
-
-
-
-# def parallel_train(client, cfg, logger):
-#     """
-#     Wrapper function to train and save a client model seperately in a multiprocessing thread.
-#     """
-#     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger)
-#     client.trainer.fit(client.model, client.train_data, client.val_data)
-#     torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
-
-# processes = []
-# for client in clients:
-#     p = mp.Process(target=parallel_train, args=(client,cfg,sfl_logger,))
-#     processes.append(p)
-#     p.start()
-
-# for p in processes:
-#     p.join()

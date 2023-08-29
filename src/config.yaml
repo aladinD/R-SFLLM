@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 8
+  num_clients: 3
   num_rounds: 3
-  num_epochs: 5
+  num_epochs: 20
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
