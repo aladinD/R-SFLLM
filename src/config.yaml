@@ -1,5 +1,5 @@
 sfl:
-  num_clients: 3
+  num_clients: 8
   num_rounds: 3
   num_epochs: 5
   process: "parallel" # "parallel" or "sequential"

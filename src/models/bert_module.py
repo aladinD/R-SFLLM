@@ -34,6 +34,9 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         add_pooling_layer = True
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
+        # Scheduler params
+        self.scheduler_training_steps = None
+
         # Assign performance metrics
         self.accuracy = Accuracy(task="binary", num_classes=2)  # Add to config
 
@@ -273,7 +276,7 @@ class BERTModule(BertPreTrainedModel, LightningModule):
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
         optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
-        lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=264)  # Add to config! 
+        lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=self.scheduler_training_steps)  # Add to config! 
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
 
 

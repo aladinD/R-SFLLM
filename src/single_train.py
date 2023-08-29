@@ -11,6 +11,7 @@ import torch
 import copy
 import uuid
 from pytorch_lightning.utilities.parsing import AttributeDict
+import copy
 
 import torch
 import random
@@ -43,8 +44,13 @@ def main(cfg):
 
     # Get model
     model = BERTModule.from_pretrained(**cfg.model.config)
+    model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dl[0])
+
+    print("LEN : ", len(train_dl[0]))
+    print("TRAIN STEPS :", model.scheduler_training_steps)
+    
     client = Client(id=0,
-                    model=model,
+                    model=copy.deepcopy(model),
                     trainer=pl.Trainer(**cfg.trainer, devices=[0]),
                     logger=pl.loggers.CSVLogger("logs", name=f"test_log"),
                     train_data=train_dl[0],

@@ -14,6 +14,20 @@ import uuid
 import time
 from joblib import Parallel, delayed
 import copy
+import random
+import numpy as np
+
+# Set random seed for PyTorch
+seed = 42
+torch.manual_seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+# Set random seed for Python's built-in random module
+random.seed(seed)
+
+# Set random seed for NumPy
+np.random.seed(seed)
 
 
 def parallel_train(client, cfg, logger):
@@ -74,6 +88,8 @@ def main(cfg):
 
     # Instantiate clients 
     model = BERTModule.from_pretrained(**cfg.model.config)
+    model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
+
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
