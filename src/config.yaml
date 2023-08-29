@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 3
+  num_clients: 8
   num_rounds: 3
-  num_epochs: 3
+  num_epochs: 30
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
@@ -20,7 +20,7 @@ data:
   batch_size: 256
   num_workers: 1
   model_type: "bert-base-uncased"
-  truncate: 500
+  # truncate: 500
   num_splits: ${sfl.num_clients}
 
 trainer:

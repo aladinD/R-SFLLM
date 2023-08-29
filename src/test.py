@@ -1,21 +1,18 @@
-from src.datamodules.bert_datamodule import BertDataModule
-from src.datamodules.glue_datamodule import GLUEDataModule
-import hydra
-from src.models.bert_module import BERTModule
-import pytorch_lightning as pl
-from pytorch_lightning import loggers as pl_loggers
-from sfl.aggregator import Aggregator
-from sfl.client import Client
-import torch.multiprocessing as mp
-from src import utils
-import torch
-import copy
-import uuid
-import time
-from joblib import Parallel, delayed
 import copy
 import random
+
+import hydra
 import numpy as np
+import pytorch_lightning as pl
+import torch
+from joblib import Parallel, delayed
+
+from sfl.aggregator import Aggregator
+from sfl.client import Client
+from src import utils
+from src.datamodules.glue_datamodule import GLUEDataModule
+from src.models.bert_module import BERTModule
+
 
 # Seeding
 seed = 42
@@ -38,7 +35,8 @@ def parallel_train(client, cfg, r):
 
 def get_dls(cfg, master: bool = False): 
     """
-    Loads the train and val dataloaders.
+    Loads the train and val dataloaders for each clients including appropriate splitting.
+    Loads the complete train and val dataloaders for the master.
     """
     if master is False:
         datamodule = GLUEDataModule(**cfg.data)
@@ -84,7 +82,7 @@ def evaluate_master_model(model, cfg, r):
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
     
-    # Process logger
+    # Logger
     log = utils.get_pylogger(__name__)
 
     # Get dataloaders
