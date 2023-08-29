@@ -12,6 +12,23 @@ import copy
 import uuid
 from pytorch_lightning.utilities.parsing import AttributeDict
 
+import torch
+import random
+import numpy as np
+
+# Set random seed for PyTorch
+seed = 42
+torch.manual_seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+# Set random seed for Python's built-in random module
+random.seed(seed)
+
+# Set random seed for NumPy
+np.random.seed(seed)
+
+
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
 

@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 8
-  num_rounds: 10
-  num_epochs: 50
+  num_clients: 3
+  num_rounds: 3
+  num_epochs: 5
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
@@ -10,6 +10,10 @@ model:
   config:
     pretrained_model_name_or_path: "bert-base-uncased"
     num_labels: 2
+
+optimizer:
+  lr: 1e-5
+  eps: 1e-8
 
 data:
   glue_dataset: "sst2"

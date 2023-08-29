@@ -269,13 +269,17 @@ class BERTModule(BertPreTrainedModel, LightningModule):
             outputs = self.forward(**inputs)
         preds = torch.argmax(outputs.logits, dim=1)
         return preds
-
+    
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
         optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=264)  # Add to config! 
-        # This scheduler is not compatible with the PL workflow! 
-        return {
-            "optimizer": optimizer
-            # "scheduler": scheduler
-        }
+        lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=264)  # Add to config! 
+        return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
+
+
+    def lr_scheduler_step(self, scheduler, optimizer_idx, *args, **kwargs):
+        """
+        Needs to be overwritten due to non LambdaLR scheduler in configure_optimizers.
+        Transformer scheduler get_linear_schedule_with_warmup is not compatible with the PL workflow.
+        """
+        scheduler.step()
