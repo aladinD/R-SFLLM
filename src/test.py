@@ -81,9 +81,6 @@ def evaluate_master_model(model, cfg, r):
     validation_trainer.test(master.model, master_val_dl)
 
 
-
-    
-
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
     
