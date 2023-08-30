@@ -74,10 +74,10 @@ def evaluate_master_model(model, cfg, r):
     train_logger = pl.loggers.CSVLogger(save_dir="logs/master/", name="train", version=f"round_{r}")
     validation_logger = pl.loggers.CSVLogger(save_dir="logs/master/", name="validation", version=f"round_{r}")
 
-    train_trainer = pl.Trainer(**eval_config, logger=train_logger)
+    train_trainer = pl.Trainer(**eval_config, logger=train_logger, log_every_n_steps=1)
     train_trainer.test(master.model, master_train_dl)
 
-    validation_trainer = pl.Trainer(**eval_config, logger=validation_logger)
+    validation_trainer = pl.Trainer(**eval_config, logger=validation_logger, log_every_n_steps=1)
     validation_trainer.test(master.model, master_val_dl)
 
 
