@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 
 
-def accumulate_client_metrics(client_name, base_path='./logs/'):
+def accumulate_client_metrics(cfg, client_name, logs_path='./logs/'):
     """
     Reads and accumulates metrics for a specified client from all rounds.
     
@@ -15,6 +15,10 @@ def accumulate_client_metrics(client_name, base_path='./logs/'):
         train_df: DataFrame containing training metrics.
         val_df: DataFrame containing validation metrics.
     """
+    # Hyperparameters
+    num_epochs = cfg.sfl.num_epochs
+    num_rounds = cfg.sfl.num_rounds
+
     base_path = logs_path + "clients/"
     client_dir = os.path.join(base_path, client_name)
     
@@ -52,7 +56,7 @@ def accumulate_client_metrics(client_name, base_path='./logs/'):
     return train_df, val_df
 
 
-def accumulate_master_metrics(logs_üath='./logs/'):
+def accumulate_master_metrics(cfg, logs_path='./logs/'):
     """
     Reads and accumulates metrics for the master model from all rounds.
     
@@ -62,6 +66,10 @@ def accumulate_master_metrics(logs_üath='./logs/'):
     Returns:
         DataFrame: Accumulated metrics.
     """
+    # Hyperparameters
+    num_epochs = cfg.sfl.num_epochs
+    num_rounds = cfg.sfl.num_rounds
+
     base_path = logs_path + "master/"
     train_dir = os.path.join(base_path, 'train')
     val_dir = os.path.join(base_path, 'validation')
@@ -78,13 +86,13 @@ def accumulate_master_metrics(logs_üath='./logs/'):
         if os.path.exists(train_metrics_path):
             train_df = pd.read_csv(train_metrics_path)
             # Update the epoch number based on the round number
-            train_df['epoch'] = train_df['epoch'] + idx * num_epochs
+            train_df['epoch'] = train_df['epoch'] + idx * num_epochs -1
             all_train_metrics.append(train_df)
         
         if os.path.exists(val_metrics_path):
             val_df = pd.read_csv(val_metrics_path)
             # Update the epoch number based on the round number
-            val_df['epoch'] = val_df['epoch'] + idx * num_epochs
+            val_df['epoch'] = val_df['epoch'] + idx * num_epochs -1
             all_val_metrics.append(val_df)
     
     # Concatenate metrics from all rounds
@@ -98,16 +106,19 @@ def accumulate_master_metrics(logs_üath='./logs/'):
     return accumulated_train_df, accumulated_val_df
 
 
-def plot_metrics(client_name: str = 'client_0_logger',
+def plot_metrics(cfg,
+                 client_name: str = 'client_0_logger',
                  save_dir: str = '/home/aladin/resilient_sfl/src/results/plots',
                  logs_path: str = './logs/', 
-                 plot_accs: bool = False) -> None:
+                 plot_train_accs: bool = False) -> None:
     """
     Plots the training and validation metrics for a specified client and the master model.
     """
-    client_train_df, client_val_df = accumulate_client_metrics(client_name, logs_path)
-    master_train_df, master_val_df = accumulate_master_metrics(logs_path)
+    # Dataframes
+    client_train_df, client_val_df = accumulate_client_metrics(cfg, client_name, logs_path)
+    master_train_df, master_val_df = accumulate_master_metrics(cfg, logs_path)
     
+    # Plotting
     plt.figure(figsize=(10, 6))
 
     # Plot val metrics for client and master model
@@ -115,7 +126,7 @@ def plot_metrics(client_name: str = 'client_0_logger',
     plt.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
     
     # Plot acc metrics for client and master model
-    if plot_accs:
+    if plot_train_accs:
         plt.plot(client_train_df['epoch'], client_train_df['train_acc'], label=f'{client_name} per epoch train accuracies', linestyle='-', marker='o')
         plt.plot(master_train_df['epoch'], master_train_df['test_acc'], label='global train accuracy after each round', linestyle='-', marker='o')
     else:
@@ -126,5 +137,5 @@ def plot_metrics(client_name: str = 'client_0_logger',
     plt.title(f'Metrics for {client_name} and Master Model')
     plt.legend()
     plt.grid(True, alpha=0.5)
-    plt.show()
     plt.savefig(os.path.join(save_dir, f'result.png'))
+    plt.show()

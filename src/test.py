@@ -13,6 +13,7 @@ from sfl.client import Client
 from src import utils
 from src.datamodules.glue_datamodule import GLUEDataModule
 from src.models.bert_module import BERTModule
+from src.utils import plotting
 
 
 # Seeding
@@ -188,6 +189,9 @@ def main(cfg):
 
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")
+
+        # Save results
+        plotting.plot_metrics(cfg, save_dir="./results/plots", logs_path="./logs/", plot_train_accs=False)
 
 
 if __name__ == "__main__":
