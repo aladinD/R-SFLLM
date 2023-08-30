@@ -3,6 +3,7 @@ import random
 
 import hydra
 import numpy as np
+import os
 import pytorch_lightning as pl
 import torch
 from joblib import Parallel, delayed
@@ -16,6 +17,7 @@ from src.models.bert_module import BERTModule
 
 # Seeding
 seed = 42
+pl.seed_everything(seed, workers=True)
 torch.manual_seed(seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
@@ -77,6 +79,9 @@ def evaluate_master_model(model, cfg, r):
 
     validation_trainer = pl.Trainer(**eval_config, logger=validation_logger)
     validation_trainer.test(master.model, master_val_dl)
+
+
+
     
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
@@ -94,10 +99,11 @@ def main(cfg):
     log.info("INSTANTIATING MODEL")
     model = BERTModule.from_pretrained(**cfg.model.config)
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
+    print("TOTAL STEPS : ", model.scheduler_training_steps)
     model.add_noise = False
+    print("ADD NOISE : ", model.add_noise)
 
     # Instantiate clients
-
     log.info("INSTANTIATING CLIENTS")
 
     clients = []
