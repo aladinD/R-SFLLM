@@ -277,7 +277,7 @@ class BERTModule(BertPreTrainedModel, LightningModule):
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
         optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
         lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=self.scheduler_training_steps)  # Add to config! 
-        return [optimizer], [{"scheduler": lr_scheduler, "interval": "step"}]
+        return [optimizer], [{"scheduler": lr_scheduler, "interval": "step", "frequency": 1}]
 
 
     def lr_scheduler_step(self, scheduler, optimizer_idx, *args, **kwargs):

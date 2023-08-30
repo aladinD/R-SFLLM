@@ -1,5 +1,5 @@
-import pyrootutils
 import pytest
+import rootutils
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
 from hydra.utils import instantiate
@@ -13,7 +13,7 @@ def cfg_train_global() -> DictConfig:
 
         # set defaults for all tests
         with open_dict(cfg):
-            cfg.paths.root_dir = str(pyrootutils.find_root())
+            cfg.paths.root_dir = str(rootutils.find_root(indicator=".project-root"))
             cfg.trainer.max_epochs = 1
 
             cfg.trainer.limit_train_batches = 0.01
@@ -38,7 +38,7 @@ def cfg_eval_global() -> DictConfig:
 
         # set defaults for all tests
         with open_dict(cfg):
-            cfg.paths.root_dir = str(pyrootutils.find_root())
+            cfg.paths.root_dir = str(rootutils.find_root())
             cfg.trainer.max_epochs = 1
             cfg.trainer.limit_test_batches = 0.1
             cfg.trainer.accelerator = "cpu"

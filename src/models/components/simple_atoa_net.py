@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+torch.set_default_dtype(torch.float)
+
 
 class SimpleATOANet(nn.Module):
     def __init__(
@@ -15,6 +17,19 @@ class SimpleATOANet(nn.Module):
         num_paths: int = 3,
         initialize_lazy_layers: bool = True,
     ) -> None:
+        """Simple convnet to estimate delay and elevation AoA.
+
+        :param in_shape: Input shape corresponding to (num_antennas, num_fft, num_symbols).
+        :type in_shape: Tuple[int, int, int]
+        :param embed_dim: Size of the FC output layer after conv block.
+        :type embed_dim: Optional[int]
+        :param num_params: Number of path parameters to estimate, defaults to 2
+        :type num_params: int, optional
+        :param num_paths: Number of paths for which parameters are estimated, defaults to 3
+        :type num_paths: int, optional
+        :param initialize_lazy_layers: Whether to initialize the conv layers lazily, defaults to True
+        :type initialize_lazy_layers: bool, optional
+        """
         assert num_params == 2, "Only two parameters are supported for now!"
         super().__init__()
 

@@ -6,7 +6,7 @@ import torch
 from .base import BaseTransform, Input
 
 
-class ParseAngles(BaseTransform):
+class NormalizeAngles(BaseTransform):
     def __init__(
         self, normalize: bool = False, azimuth_only: bool = False, elevation_only: bool = False
     ) -> None:
@@ -67,4 +67,32 @@ class ParseAngles(BaseTransform):
             if self.elevation_only:
                 gt[name] = angles[..., 1]
 
+        return x, gt
+
+
+class NormalizeDelays(BaseTransform):
+    def __init__(self, t_sym) -> None:
+        """Normalize the path delays in the ground truth between 0 and t_sym/2.
+
+        :param t_sym: Symbol time.
+        :type t_sym: float
+        :param normalize: _description_, defaults to False
+        :type normalize: bool, optional
+        """
+        self.t_sym = t_sym
+
+        # names of the timedelay as they appear in the ground truth dict
+        self.names = ("path_delays",)
+
+    def validate_input(self, inp: Input):
+        _, gt = inp
+        assert isinstance(gt, dict), "Ground truth must be a dict!"
+        assert "path_delays" in gt.keys(), "Ground truth must contain path delays!"
+        assert gt["path_delays"].shape[-1] > 0, "Path delays tensor is empty!"
+
+    # t_sym as symbol duration
+    def apply(self, inp):
+        x, gt = inp
+        for name in self.names:
+            gt[name] /= 0.5 * self.t_sym
         return x, gt

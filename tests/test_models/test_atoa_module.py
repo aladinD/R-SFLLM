@@ -35,5 +35,6 @@ def test_atoa_module(num_ant_rx=16, batch_size=32, num_symbols=14, num_carriers=
     tloader = dmod.train_dataloader()
     batch = next(iter(tloader))
 
-    res = atoa_module.training_step(batch=batch, batch_idx=0)
-    assert len(res["loss"]) == batch_size
+    # check if loss returned is scalar, since it is averaged over batch size
+    res: torch.Tensor = atoa_module.training_step(batch=batch, batch_idx=0)
+    assert res["loss"].dim() == 0

@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Optional
 
 import torch
 import torch.functional as F
@@ -106,7 +106,7 @@ class ATOAModule(LightningModule):
     def validation_step(self, batch: Any, batch_idx: int):
         return self.stage_step(batch, "val")
 
-    def validation_epoch_end(self, outputs: List[Any]):
+    def on_validation_epoch_end(self, outputs: Optional[List[Any]] = None):
         mae = self.val_metric.compute()  # get current val acc
         self.val_metric_best(mae)  # update best so far val acc
         # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object

@@ -10,9 +10,11 @@ transforms:
   _target_: src.datamodules.components.transforms.core.Compose
   transforms:
     - _target_: src.datamodules.components.transforms.core.ComplexToReal
-    - _target_: src.datamodules.components.transforms.target_transforms.ParseAngles
+    - _target_: src.datamodules.components.transforms.target_transforms.NormalizeAngles
       normalize: true
       elevation_only: true
+    - _target_: src.datamodules.components.transforms.target_transforms.NormalizeDelays
+      t_sym: 1
 
 dataset:
   _target_: src.datamodules.components.datasets.simulation_dataset.SimulationDataset

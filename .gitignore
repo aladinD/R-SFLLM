@@ -1,3 +1,10 @@
+# Folders
+/src/lightning_logs/
+/src/logs/
+/src/models/
+/src/outputs/
+/src/results/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
