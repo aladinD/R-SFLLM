@@ -1,6 +1,6 @@
 sfl:
   num_clients: 8
-  num_rounds: 3
+  num_rounds: 10
   num_epochs: 30
   process: "parallel" # "parallel" or "sequential"
   ckpt_path: "results/model_ckpts/"
