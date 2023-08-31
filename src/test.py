@@ -11,8 +11,9 @@ from joblib import Parallel, delayed
 from sfl.aggregator import Aggregator
 from sfl.client import Client
 from src import utils
-from src.datamodules.glue_datamodule import GLUEDataModule
+from src.datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
 from src.models.bert_module import BERTModule
+from src.models.roberta_module import RoBERTaModule
 from src.utils import plotting
 
 
@@ -28,7 +29,7 @@ np.random.seed(seed)
 
 def parallel_train(client, cfg, r):
     """
-    Wrapper function to train and save a client model seperately in a multiprocessing thread.
+    Train and save a client model seperately in a parallel job.
     """
     logger = pl.loggers.CSVLogger(save_dir="logs/clients", name=f"client_{client.id}_logger", version=f"round_{r}")
     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger, log_every_n_steps=1)
@@ -42,16 +43,39 @@ def get_dls(cfg, master: bool = False):
     Loads the complete train and val dataloaders for the master.
     """
     if master is False:
-        datamodule = GLUEDataModule(**cfg.data)
+        if cfg.data.glue_dataset == "sst2":
+            datamodule = SST2DataModule(**cfg.data)
+        elif cfg.data.glue_dataset == "mrpc":
+            datamodule = MRPCDataModule(**cfg.data)
+        elif cfg.data.glue_dataset == "qnli":
+            datamodule = QNLIDataModule(**cfg.data)
+        elif cfg.data.glue_dataset == "mnli":
+            datamodule = MNLIDataModule(**cfg.data)
+        else:
+            raise ValueError("UNSUPPORTED GLUE OR OTHER DATASET")
+
         datamodule.prepare_data()
         datamodule.setup()
         return datamodule.train_dataloader(), datamodule.val_dataloader()
+    
     else:
         data_config = dict(cfg.data)
         data_config['num_splits'] = None
-        datamodule = GLUEDataModule(**data_config)
+
+        if cfg.data.glue_dataset == "sst2":
+            datamodule = SST2DataModule(**data_config)
+        elif cfg.data.glue_dataset == "mrpc":
+            datamodule = MRPCDataModule(**data_config)
+        elif cfg.data.glue_dataset == "qnli":
+            datamodule = QNLIDataModule(**data_config)
+        elif cfg.data.glue_dataset == "mnli":
+            datamodule = MNLIDataModule(**data_config)
+        else:
+            raise ValueError("UNSUPPORTED GLUE OR OTHER DATASET")
+
         datamodule.prepare_data()
         datamodule.setup()
+        print("LEN : ", len(datamodule.train_dataloader()), len(datamodule.val_dataloader()))
         return datamodule.train_dataloader(), datamodule.val_dataloader()
 
 
@@ -60,6 +84,7 @@ def evaluate_master_model(model, cfg, r):
     Evaluates the master model on the complete train and validation dataset.
     """
     master_train_dl, master_val_dl = get_dls(cfg, master=True)
+    print(len(master_train_dl), len(master_val_dl))
 
     master = Client(id=99,
                     model=copy.deepcopy(model),
@@ -95,8 +120,19 @@ def main(cfg):
 
     # Instantiate model
     log.info("INSTANTIATING MODEL")
-    model = BERTModule.from_pretrained(**cfg.model.config)
+    if cfg.model.config.pretrained_model_name_or_path == "bert-base-uncased":
+        model = BERTModule.from_pretrained(**cfg.model.config)
+    elif cfg.model.config.pretrained_model_name_or_path == "roberta-base":
+        model = RoBERTaModule.from_pretrained(**cfg.model.config)
+    else:
+        log.error("INVALID MODEL TYPE from : {bert-base-uncased, roberta-base}")
+
+    # model = BERTModule.from_pretrained(**cfg.model.config)
+    # model = RoBERTaModule.from_pretrained(**cfg.model.config)
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
+    model.num_classes = cfg.model.config.num_labels
+    model.init_metrics()
+    print("NUM CLASSES : ", model.num_classes)
     print("TOTAL STEPS : ", model.scheduler_training_steps)
     model.add_noise = False
     print("ADD NOISE : ", model.add_noise)
@@ -168,7 +204,6 @@ def main(cfg):
         aggregated_attentions = aggregator.aggregate(attentions)
         aggregated_heads = aggregator.aggregate(heads)
         aggregated_embeddings = aggregator.aggregate(embeddings)
-
 
         # Model update & save
         for client in clients:

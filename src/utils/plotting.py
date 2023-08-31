@@ -24,6 +24,7 @@ def accumulate_client_metrics(cfg, client_name, logs_path='./logs/'):
     
     # List all rounds for the client
     rounds = [d for d in os.listdir(client_dir) if os.path.isdir(os.path.join(client_dir, d))]
+    rounds = rounds[:num_rounds]
     
     all_train_metrics = []
     all_val_metrics = []
@@ -76,6 +77,7 @@ def accumulate_master_metrics(cfg, logs_path='./logs/'):
     
     # List all rounds for the master model
     rounds = [d for d in os.listdir(train_dir) if os.path.isdir(os.path.join(train_dir, d))]
+    rounds = rounds[:num_rounds]
     
     all_train_metrics = []
     all_val_metrics = []

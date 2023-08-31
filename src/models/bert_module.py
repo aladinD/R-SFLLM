@@ -37,8 +37,16 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         # Scheduler params
         self.scheduler_training_steps = None
 
+        # Classes params
+        self.num_classes = None
+
         # Assign performance metrics
-        self.accuracy = Accuracy(task="binary", num_classes=2)  # Add to config
+        self.metric = None
+
+        # if self.num_classes == 2:
+        #     self.accuracy = Accuracy(task="binary", num_classes=self.num_classes)  # Add to config
+        # else:
+        #     self.accuracy = Accuracy(task="multiclass", num_classes=self.num_classes)  # Add to config
 
         # Assign noise
         self.add_noise = False
@@ -130,7 +138,9 @@ class BERTModule(BertPreTrainedModel, LightningModule):
 
         # Add noise to the input embeddings
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
+        # if self.add_noise:
         if self.add_noise:
+            print("*** ADDING NOISE ***")
             noise = torch.normal(mean=0, std=0.1, size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:
@@ -208,6 +218,16 @@ class BERTModule(BertPreTrainedModel, LightningModule):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
+    
+
+    def init_metrics(self) -> None:
+        """
+        Initializes the metrics for the model.
+        """
+        if self.num_classes == 2:
+            self.accuracy = Accuracy(task="binary", num_classes=self.num_classes)
+        else:
+            self.accuracy = Accuracy(task="multiclass", num_classes=self.num_classes)
         
 
     def training_step(self, batch: Any, batch_idx) -> torch.Tensor:
@@ -246,7 +266,7 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         return loss
     
 
-    def test_step(self, batch: Any, batch_idx) -> torch.Tensor:
+    def test_step(self, batch: Any, batch_idx, dataloader_idx=None) -> torch.Tensor:
         inputs = {
             "input_ids": batch[0],
             "attention_mask": batch[1],
@@ -262,7 +282,7 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         return loss
     
 
-    def predict_step(self, batch: Any, batch_idx) -> torch.tensor:
+    def predict_step(self, batch: Any, batch_idx, dataloader_idx=None) -> torch.tensor:
         inputs = {
             "input_ids": batch[0],
             "attention_mask": batch[1],
