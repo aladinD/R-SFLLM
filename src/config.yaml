@@ -1,7 +1,7 @@
 sfl:
-  num_clients: 3
-  num_rounds: 3
-  num_epochs: 3
+  num_clients: 8
+  num_rounds: 10
+  num_epochs: 50
   process: "parallel" # from : {"parallel" or "sequential"}
   ckpt_path: "results/model_ckpts/"
   master_path: "results/master/"
@@ -14,8 +14,8 @@ training:
 
 model:
   config:
-    pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
-    num_labels: 3 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
+    pretrained_model_name_or_path: "roberta-base" # from : {"bert-base-uncased", "roberta-base"}  
+    num_labels: 2 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
 
 optimizer:
   lr: 1e-5

@@ -40,14 +40,6 @@ class BERTModule(BertPreTrainedModel, LightningModule):
         # Classes params
         self.num_classes = None
 
-        # Assign performance metrics
-        self.metric = None
-
-        # if self.num_classes == 2:
-        #     self.accuracy = Accuracy(task="binary", num_classes=self.num_classes)  # Add to config
-        # else:
-        #     self.accuracy = Accuracy(task="multiclass", num_classes=self.num_classes)  # Add to config
-
         # Assign noise
         self.add_noise = False
 

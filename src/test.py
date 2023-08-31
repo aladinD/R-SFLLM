@@ -75,7 +75,6 @@ def get_dls(cfg, master: bool = False):
 
         datamodule.prepare_data()
         datamodule.setup()
-        print("LEN : ", len(datamodule.train_dataloader()), len(datamodule.val_dataloader()))
         return datamodule.train_dataloader(), datamodule.val_dataloader()
 
 
@@ -84,7 +83,6 @@ def evaluate_master_model(model, cfg, r):
     Evaluates the master model on the complete train and validation dataset.
     """
     master_train_dl, master_val_dl = get_dls(cfg, master=True)
-    print(len(master_train_dl), len(master_val_dl))
 
     master = Client(id=99,
                     model=copy.deepcopy(model),
@@ -116,7 +114,6 @@ def main(cfg):
     # Get dataloaders
     log.info("LOADING DATA")
     train_dls, val_dls = get_dls(cfg, master=False)
-    log.info("DATA LOADED WITH DATALOADER SIZE PER CLIENT : %s", len(train_dls[0]))
 
     # Instantiate model
     log.info("INSTANTIATING MODEL")
@@ -127,15 +124,11 @@ def main(cfg):
     else:
         log.error("INVALID MODEL TYPE from : {bert-base-uncased, roberta-base}")
 
-    # model = BERTModule.from_pretrained(**cfg.model.config)
-    # model = RoBERTaModule.from_pretrained(**cfg.model.config)
+    # Set additional model configurations
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
     model.num_classes = cfg.model.config.num_labels
     model.init_metrics()
-    print("NUM CLASSES : ", model.num_classes)
-    print("TOTAL STEPS : ", model.scheduler_training_steps)
     model.add_noise = False
-    print("ADD NOISE : ", model.add_noise)
 
     # Instantiate clients
     log.info("INSTANTIATING CLIENTS")
