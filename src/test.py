@@ -11,17 +11,19 @@ from joblib import Parallel, delayed
 from sfl.aggregator import Aggregator
 from sfl.client import Client
 from src import utils
+
 from src.datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
 from src.models.bert_module import BERTModule
 from src.models.roberta_module import RoBERTaModule
 from src.utils import plotting
+from src.utils.utils import init_dir
 
 
 # Seeding
 seed = 42
 pl.seed_everything(seed, workers=True)
 torch.manual_seed(seed)
-torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.deterministic = True # Might be double -> see config
 torch.backends.cudnn.benchmark = False
 random.seed(seed)
 np.random.seed(seed)
@@ -31,10 +33,10 @@ def parallel_train(client, cfg, r):
     """
     Train and save a client model seperately in a parallel job.
     """
-    logger = pl.loggers.CSVLogger(save_dir="logs/clients", name=f"client_{client.id}_logger", version=f"round_{r}")
+    logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
     client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger, log_every_n_steps=1)
     client.trainer.fit(client.model, client.train_data, client.val_data)
-    torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+    torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
 
 
 def get_dls(cfg, master: bool = False): 
@@ -90,19 +92,19 @@ def evaluate_master_model(model, cfg, r):
                     train_data=master_train_dl,
                     val_data=master_val_dl)
     
-    master.model.load_state_dict(torch.load(cfg.sfl.master_path + f"master_round_{r}.pt"))
+    master.model.load_state_dict(torch.load(cfg.training.master_ckpts_path + f"master_round_{r}.pt"))
     
     eval_config = dict(cfg.trainer)
     eval_config['devices'] = 1
 
-    train_logger = pl.loggers.CSVLogger(save_dir="logs/master/", name="train", version=f"round_{r}")
-    validation_logger = pl.loggers.CSVLogger(save_dir="logs/master/", name="validation", version=f"round_{r}")
+    train_logger = pl.loggers.CSVLogger(save_dir=cfg.training.master_log_path, name="train", version=f"round_{r}")
+    validation_logger = pl.loggers.CSVLogger(save_dir=cfg.training.master_log_path, name="validation", version=f"round_{r}")
 
     train_trainer = pl.Trainer(**eval_config, logger=train_logger, log_every_n_steps=1)
-    train_trainer.test(master.model, master_train_dl)
+    train_trainer.test(master.model, master.train_data)
 
     validation_trainer = pl.Trainer(**eval_config, logger=validation_logger, log_every_n_steps=1)
-    validation_trainer.test(master.model, master_val_dl)
+    validation_trainer.test(master.model, master.val_data)
 
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
@@ -110,6 +112,10 @@ def main(cfg):
     
     # Logger
     log = utils.get_pylogger(__name__)
+
+    # Initialize directory
+    log.info("INITIALIZING DIRECTORY")
+    init_dir(cfg)
 
     # Get dataloaders
     log.info("LOADING DATA")
@@ -122,7 +128,7 @@ def main(cfg):
     elif cfg.model.config.pretrained_model_name_or_path == "roberta-base":
         model = RoBERTaModule.from_pretrained(**cfg.model.config)
     else:
-        log.error("INVALID MODEL TYPE from : {bert-base-uncased, roberta-base}")
+        log.error("INVALID MODEL TYPE FROM : {bert-base-uncased, roberta-base}")
 
     # Set additional model configurations
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
@@ -132,7 +138,6 @@ def main(cfg):
 
     # Instantiate clients
     log.info("INSTANTIATING CLIENTS")
-
     clients = []
     for i in range(cfg.sfl.num_clients):
         client = Client(id=i,
@@ -158,22 +163,22 @@ def main(cfg):
             # Load client models
             for client in clients:
                 if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
+                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
                     pass
 
                 # Train client models sequentially on GPU:0
-                logger = pl.loggers.CSVLogger(save_dir="logs/clients", name=f"client_{client.id}_logger", version=f"round_{r}")
+                logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
                 client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
                 client.trainer.fit(client.model, client.train_data, client.val_data)
-                torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+                torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
                 
         elif cfg.sfl.process == "parallel":
 
             # Load client models
             for client in clients:
                 if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
+                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
                     pass
 
@@ -185,9 +190,9 @@ def main(cfg):
 
         log.info("ALL CLIENTS TRAINED")
 
-        # Reload all clients
+        # Reload all clients to ensure proper model states after sequential/parallel training
         for client in clients:
-            client.model.load_state_dict(torch.load(cfg.sfl.ckpt_path + f"client_{client.id}.pt"))
+            client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
 
         # Aggregate client models
         attentions = aggregator.accumulate_attentions([client.model for client in clients])
@@ -203,23 +208,27 @@ def main(cfg):
             client.update_model(aggregated_attentions)
             client.update_model(aggregated_heads)
             client.update_model(aggregated_embeddings)
-            torch.save(client.model.state_dict(), cfg.sfl.ckpt_path + f"client_{client.id}.pt")
+            torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
 
         log.info("ALL CLIENTS AGGREGATED")
 
         # Save master model
-        torch.save(clients[-1].model.state_dict(), cfg.sfl.master_path + f"master_round_{r}.pt")
+        torch.save(clients[-1].model.state_dict(), cfg.training.master_ckpts_path + f"master_round_{r}.pt")
         log.info("MASTER MODEL SAVED")
 
         # Evaluate master model
         log.info("EVALUATING MASTER MODEL")
         evaluate_master_model(model, cfg, r)
 
+        # End round and save metrics plot
         if r == cfg.sfl.num_rounds - 1:
             log.info("ALL ROUNDS COMPLETED")
-
-        # Save results
-        plotting.plot_metrics(cfg, save_dir="./results/plots", logs_path="./logs/", plot_train_accs=False)
+            log.info("PLOTTING & SAVING METRICS")
+            plotting.plot_metrics(cfg, 
+                                  plot_name="result.png",
+                                  save_dir=cfg.training.plot_path, 
+                                  logs_path=cfg.training.log_path, 
+                                  plot_train_accs=False)
 
 
 if __name__ == "__main__":

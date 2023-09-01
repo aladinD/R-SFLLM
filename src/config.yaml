@@ -1,16 +1,20 @@
 sfl:
-  num_clients: 8
-  num_rounds: 10
-  num_epochs: 50
+  num_clients: 3
+  num_rounds: 3
+  num_epochs: 3
   process: "parallel" # from : {"parallel" or "sequential"}
-  ckpt_path: "results/model_ckpts/"
-  master_path: "results/master/"
 
 training:
-  run_name: "run_0/"
-  ckpt_path: "client_ckpts/"
-  master_path: "master_ckpts/"
-  log_path: "logs/"
+  run_name: "run_0"
+  base_dir: "results"
+
+  # You do not need to change these paths if you're not specifically wanting to
+  client_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/client_ckpts/
+  master_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/master_ckpts/
+  log_path: ${training.base_dir}/${training.run_name}/logs/
+  client_log_path: ${training.base_dir}/${training.run_name}/logs//clients/
+  master_log_path: ${training.base_dir}/${training.run_name}/logs//master/
+  plot_path: ${training.base_dir}/${training.run_name}/plots/
 
 model:
   config:
@@ -27,10 +31,9 @@ data:
   num_workers: 1
   model_type: ${model.config.pretrained_model_name_or_path}
   num_splits: ${sfl.num_clients}
-  # truncate: 250
+  truncate: 250
 
 trainer:
-  # default_root_dir: "lightning_logs/"
 
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
@@ -51,4 +54,4 @@ trainer:
 
   # set True to to ensure deterministic results
   # makes training slower but gives more reproducibility than just setting seeds
-  deterministic: False
+  deterministic: True

@@ -1,6 +1,7 @@
 import time
 import warnings
 from importlib.util import find_spec
+import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
@@ -212,3 +213,39 @@ def save_file(path: str, content: str) -> None:
     """Save file in rank zero mode (only on one process in multi-GPU setup)."""
     with open(path, "w+") as file:
         file.write(content)
+
+
+def init_dir(cfg: DictConfig) -> None:
+    """
+    Initializes the directory for the experiment.
+    """
+    # Define the base directory
+    base_dir = cfg.training.base_dir
+    run_dir = os.path.join(base_dir, cfg.training.run_name)
+
+    # List of directories to create
+    dirs_to_create = [
+        run_dir,
+        os.path.join(run_dir, "ckpts", "client_ckpts"),
+        os.path.join(run_dir, "ckpts", "master_ckpts"),
+        os.path.join(run_dir, "logs", "clients"),
+        os.path.join(run_dir, "logs", "master"),
+        os.path.join(run_dir, "plots"),
+    ]
+
+    # If base directory doesn't exist, create it
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir)
+
+    # If the run directory exists, remove it to overwrite it
+    if os.path.exists(run_dir):
+        for root, dirs, files in os.walk(run_dir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+            for name in dirs:
+                os.rmdir(os.path.join(root, name))
+        os.rmdir(run_dir)
+
+    # Create the directories
+    for dir_path in dirs_to_create:
+        os.makedirs(dir_path)

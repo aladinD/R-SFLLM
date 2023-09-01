@@ -3,14 +3,32 @@ import hydra
 from src.models.bert_module import BERTModule
 import pytorch_lightning as pl
 from pytorch_lightning import loggers as pl_loggers
-from ..sfl.aggregator import Aggregator
-from ..sfl.client import Client
+from sfl.aggregator import Aggregator
+from sfl.client import Client
 import torch.multiprocessing as mp
 from src import utils
 import torch
 import copy
 import uuid
 from pytorch_lightning.utilities.parsing import AttributeDict
+import copy
+
+import torch
+import random
+import numpy as np
+
+# Set random seed for PyTorch
+seed = 42
+torch.manual_seed(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+# Set random seed for Python's built-in random module
+random.seed(seed)
+
+# Set random seed for NumPy
+np.random.seed(seed)
+
 
 @hydra.main(version_base="1.3", config_path=".", config_name="config")
 def main(cfg):
@@ -26,13 +44,20 @@ def main(cfg):
 
     # Get model
     model = BERTModule.from_pretrained(**cfg.model.config)
+    model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dl[0])
+
+    print("LEN : ", len(train_dl[0]))
+    print("TRAIN STEPS :", model.scheduler_training_steps)
+
     client = Client(id=0,
-                    model=model,
-                    trainer=pl.Trainer(**cfg.trainer, devices=[0]),
+                    model=copy.deepcopy(model),
+                    trainer=pl.Trainer(**cfg.trainer, devices=[7]),
                     train_data=train_dl[0],
                     val_data=val_dl[0])
 
     # Train model
+    logger = pl.loggers.CSVLogger("logs", name=f"test_log")
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1)
     client.trainer.fit(client.model, client.train_data, client.val_data)
 
     # Evaluate model

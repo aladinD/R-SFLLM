@@ -1,8 +1,5 @@
-# from src.models.bert_module import BERTModule
 from pytorch_lightning import LightningModule
-from pytorch_lightning import loggers as pl_logger
 import pytorch_lightning as pl
-import torch
 from torch.nn.parameter import Parameter
 from torch.utils.data import DataLoader
 from typing import Dict

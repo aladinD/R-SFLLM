@@ -109,9 +109,10 @@ def accumulate_master_metrics(cfg, logs_path='./logs/'):
 
 
 def plot_metrics(cfg,
+                 plot_name: str ='result.png',
                  client_name: str = 'client_0_logger',
-                 save_dir: str = '/home/aladin/resilient_sfl/src/results/plots',
-                 logs_path: str = './logs/', 
+                 save_dir: str = None,
+                 logs_path: str = None, 
                  plot_train_accs: bool = False) -> None:
     """
     Plots the training and validation metrics for a specified client and the master model.
@@ -124,20 +125,20 @@ def plot_metrics(cfg,
     plt.figure(figsize=(10, 6))
 
     # Plot val metrics for client and master model
-    plt.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name} per epoch val accuracies', color='blue', linestyle='-', marker='o')
+    plt.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name.replace("_logger", "")} per epoch val accuracies', color='blue', linestyle='-', marker='o')
     plt.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
     
     # Plot acc metrics for client and master model
     if plot_train_accs:
-        plt.plot(client_train_df['epoch'], client_train_df['train_acc'], label=f'{client_name} per epoch train accuracies', linestyle='-', marker='o')
+        plt.plot(client_train_df['epoch'], client_train_df['train_acc'], label=f'{client_name.replace("_logger", "")} per epoch train accuracies', linestyle='-', marker='o')
         plt.plot(master_train_df['epoch'], master_train_df['test_acc'], label='global train accuracy after each round', linestyle='-', marker='o')
     else:
         pass
 
-    plt.xlabel('Epoch')
+    plt.xlabel('Cumulative Epochs')
     plt.ylabel('Accuracy')
-    plt.title(f'Metrics for {client_name} and Master Model')
+    plt.title('Accuracies across Global Rounds and Epochs')
     plt.legend()
     plt.grid(True, alpha=0.5)
-    plt.savefig(os.path.join(save_dir, f'result.png'))
+    plt.savefig(os.path.join(save_dir, plot_name))
     plt.show()

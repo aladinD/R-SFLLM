@@ -1,7 +1,6 @@
 import torch
 from torch.nn.parameter import Parameter
 from typing import List, Dict
-# from src.models.bert_module import BERTModule
 from pytorch_lightning import LightningModule
 
 
