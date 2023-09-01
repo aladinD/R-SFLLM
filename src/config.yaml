@@ -1,14 +1,14 @@
 sfl:
   num_clients: 3
   num_rounds: 3
-  num_epochs: 3
+  num_epochs: 30
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
   run_name: "run_0"
   base_dir: "results"
 
-  # You do not need to change these paths if you're not specifically wanting to
+  # You do not need to change these paths if you're not specifically wanting to; they will be created automatically
   client_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/client_ckpts/
   master_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/master_ckpts/
   log_path: ${training.base_dir}/${training.run_name}/logs/
@@ -18,7 +18,7 @@ training:
 
 model:
   config:
-    pretrained_model_name_or_path: "roberta-base" # from : {"bert-base-uncased", "roberta-base"}  
+    pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
     num_labels: 2 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
 
 optimizer:
@@ -31,7 +31,7 @@ data:
   num_workers: 1
   model_type: ${model.config.pretrained_model_name_or_path}
   num_splits: ${sfl.num_clients}
-  truncate: 250
+  # truncate: 250
 
 trainer:
 
@@ -54,4 +54,4 @@ trainer:
 
   # set True to to ensure deterministic results
   # makes training slower but gives more reproducibility than just setting seeds
-  deterministic: True
+  deterministic: False

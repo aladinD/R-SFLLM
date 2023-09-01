@@ -1,13 +1,11 @@
 sfl:
   num_clients: 3
   num_rounds: 3
-  num_epochs: 3
+  num_epochs: 30
   process: parallel
-  ckpt_path: results/client_ckpts/
-  master_path: results/master_ckpts/
 training:
   run_name: run_0
-  base_dir: ./results
+  base_dir: results
   client_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/client_ckpts/
   master_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/master_ckpts/
   log_path: ${training.base_dir}/${training.run_name}/logs/
@@ -16,7 +14,7 @@ training:
   plot_path: ${training.base_dir}/${training.run_name}/plots/
 model:
   config:
-    pretrained_model_name_or_path: roberta-base
+    pretrained_model_name_or_path: bert-base-uncased
     num_labels: 2
 optimizer:
   lr: 1.0e-05
@@ -27,7 +25,6 @@ data:
   num_workers: 1
   model_type: ${model.config.pretrained_model_name_or_path}
   num_splits: ${sfl.num_clients}
-  truncate: 250
 trainer:
   max_epochs: ${sfl.num_epochs}
   accelerator: cuda

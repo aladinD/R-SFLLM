@@ -15,7 +15,7 @@ from src import utils
 from src.datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
 from src.models.bert_module import BERTModule
 from src.models.roberta_module import RoBERTaModule
-from src.utils import plotting
+from src.utils import plotting 
 from src.utils.utils import init_dir
 
 
