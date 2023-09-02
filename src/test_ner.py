@@ -12,9 +12,9 @@ from sfl.aggregator import Aggregator
 from sfl.client import Client
 from src import utils
 
-from src.datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
-from src.models.bert_module import BERTModule
-from src.models.roberta_module import RoBERTaModule
+from src.datamodules.ner_datamodule import CoNLL2003DataModule, WNUT17DataModule, OntoNotesDataModule
+from src.models.bert_module import BERTForTokenClassificationModule
+from src.models.roberta_module import RoBERTaForTokenClassificationModule
 from src.utils import plotting 
 from src.utils.utils import init_dir
 
@@ -45,14 +45,12 @@ def get_dls(cfg, master: bool = False):
     Loads the complete train and val dataloaders for the master.
     """
     if master is False:
-        if cfg.data.glue_dataset == "sst2":
-            datamodule = SST2DataModule(**cfg.data)
-        elif cfg.data.glue_dataset == "mrpc":
-            datamodule = MRPCDataModule(**cfg.data)
-        elif cfg.data.glue_dataset == "qnli":
-            datamodule = QNLIDataModule(**cfg.data)
-        elif cfg.data.glue_dataset == "mnli":
-            datamodule = MNLIDataModule(**cfg.data)
+        if cfg.data.ner_dataset == "conll2003":
+            datamodule = CoNLL2003DataModule(**cfg.data)
+        elif cfg.data.ner_dataset == "wnut_17":
+            datamodule = WNUT17DataModule(**cfg.data)
+        elif cfg.data.ner_dataset == "conll2012_ontonotesv5":
+            datamodule = OntoNotesDataModule(**cfg.data)
         else:
             raise ValueError("UNSUPPORTED GLUE OR OTHER DATASET")
 
@@ -64,14 +62,12 @@ def get_dls(cfg, master: bool = False):
         data_config = dict(cfg.data)
         data_config['num_splits'] = None
 
-        if cfg.data.glue_dataset == "sst2":
-            datamodule = SST2DataModule(**data_config)
-        elif cfg.data.glue_dataset == "mrpc":
-            datamodule = MRPCDataModule(**data_config)
-        elif cfg.data.glue_dataset == "qnli":
-            datamodule = QNLIDataModule(**data_config)
-        elif cfg.data.glue_dataset == "mnli":
-            datamodule = MNLIDataModule(**data_config)
+        if cfg.data.ner_dataset == "conll2003":
+            datamodule = CoNLL2003DataModule(**data_config)
+        elif cfg.data.ner_dataset == "wnut_17":
+            datamodule = WNUT17DataModule(**data_config)
+        elif cfg.data.ner_dataset == "conll2012_ontonotesv5":
+            datamodule = OntoNotesDataModule(**data_config)
         else:
             raise ValueError("UNSUPPORTED GLUE OR OTHER DATASET")
 
@@ -107,7 +103,7 @@ def evaluate_master_model(model, cfg, r):
     validation_trainer.test(master.model, master.val_data)
 
 
-@hydra.main(version_base="1.3", config_path=".", config_name="config")
+@hydra.main(version_base="1.3", config_path=".", config_name="config_ner")
 def main(cfg):
     
     # Logger
@@ -124,11 +120,13 @@ def main(cfg):
     # Instantiate model
     log.info("INSTANTIATING MODEL")
     if cfg.model.config.pretrained_model_name_or_path == "bert-base-uncased":
-        model = BERTModule.from_pretrained(**cfg.model.config)
+        model = BERTForTokenClassificationModule.from_pretrained(**cfg.model.config)
     elif cfg.model.config.pretrained_model_name_or_path == "roberta-base":
-        model = RoBERTaModule.from_pretrained(**cfg.model.config)
+        model = RoBERTaForTokenClassificationModule.from_pretrained(**cfg.model.config)
     else:
         log.error("INVALID MODEL TYPE FROM : {bert-base-uncased, roberta-base}")
+
+    # model = BERTForTokenClassificationModule.from_pretrained(**cfg.model.config)
 
     # Set additional model configurations
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
@@ -228,7 +226,7 @@ def main(cfg):
                                   plot_name="result.png",
                                   save_dir=cfg.training.plot_path, 
                                   logs_path=cfg.training.log_path, 
-                                  plot_train_accs=False)
+                                  plot_train_metrics=False)
 
 
 if __name__ == "__main__":

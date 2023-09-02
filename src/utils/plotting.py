@@ -1,25 +1,19 @@
 import pandas as pd
+from omegaconf import DictConfig
 import os
 import matplotlib.pyplot as plt
 
 
-def accumulate_client_metrics(cfg, client_name, logs_path='./logs/'):
+def accumulate_client_metrics(cfg: DictConfig, client_name: str, logs_path: str) -> None:
     """
     Reads and accumulates metrics for a specified client from all rounds.
-    
-    Parameters:
-        client_name (str): Name of the client directory, e.g., "client_0_logger".
-        base_path (str): Base directory where client logs are stored.
-        
-    Returns:
-        train_df: DataFrame containing training metrics.
-        val_df: DataFrame containing validation metrics.
     """
     # Hyperparameters
+    task = cfg.model.task
     num_epochs = cfg.sfl.num_epochs
     num_rounds = cfg.sfl.num_rounds
 
-    base_path = logs_path + "clients/"
+    base_path = cfg.training.client_log_path
     client_dir = os.path.join(base_path, client_name)
     
     # List all rounds for the client
@@ -37,8 +31,14 @@ def accumulate_client_metrics(cfg, client_name, logs_path='./logs/'):
             df['epoch'] = df['epoch'] + idx * num_epochs
             
             # Split the metrics into training and validation
-            train_metrics = df[['epoch', 'train_loss', 'train_acc']]
-            val_metrics = df[['epoch', 'val_loss', 'val_acc']]
+            if task == "sc":
+                train_metrics = df[['epoch', 'train_loss', 'train_acc']]
+                val_metrics = df[['epoch', 'val_loss', 'val_acc']]
+            elif task == "ner":
+                train_metrics = df[['epoch', 'train_loss', 'train_f1', 'train_precision', 'train_recall']]
+                val_metrics = df[['epoch', 'val_loss', 'val_f1', 'val_precision', 'val_recall']]
+            else:
+                print("ERROR")
             
             all_train_metrics.append(train_metrics)
             all_val_metrics.append(val_metrics)
@@ -48,16 +48,23 @@ def accumulate_client_metrics(cfg, client_name, logs_path='./logs/'):
     val_df = pd.concat(all_val_metrics, ignore_index=True)
     
     # Drop rows where values are NaN
-    train_df.dropna(subset=['train_acc'], inplace=True)
+    if task == "sc":	
+        train_df.dropna(subset=['train_acc'], inplace=True)        
+        val_df.dropna(subset=['val_acc'], inplace=True)
+    elif task == "ner":
+        train_df.dropna(subset=['train_f1'], inplace=True)
+        val_df.dropna(subset=['val_f1'], inplace=True)
+    else:
+        print("ERROR")
+
+    # Reset index
     train_df.reset_index(drop=True, inplace=True)
-    
-    val_df.dropna(subset=['val_acc'], inplace=True)
     val_df.reset_index(drop=True, inplace=True)
     
     return train_df, val_df
 
 
-def accumulate_master_metrics(cfg, logs_path='./logs/'):
+def accumulate_master_metrics(cfg: DictConfig, logs_path: str) -> None:
     """
     Reads and accumulates metrics for the master model from all rounds.
     
@@ -108,15 +115,20 @@ def accumulate_master_metrics(cfg, logs_path='./logs/'):
     return accumulated_train_df, accumulated_val_df
 
 
-def plot_metrics(cfg,
+def plot_metrics(cfg: DictConfig,
                  plot_name: str ='result.png',
                  client_name: str = 'client_0_logger',
                  save_dir: str = None,
                  logs_path: str = None, 
-                 plot_train_accs: bool = False) -> None:
+                 plot_train_metrics: bool = False) -> None:
     """
     Plots the training and validation metrics for a specified client and the master model.
     """
+    # Hyperparameters
+    task = cfg.model.task
+    main_title_fontsize = 16
+    subtitle_fontsize = 10
+
     # Dataframes
     client_train_df, client_val_df = accumulate_client_metrics(cfg, client_name, logs_path)
     master_train_df, master_val_df = accumulate_master_metrics(cfg, logs_path)
@@ -124,21 +136,43 @@ def plot_metrics(cfg,
     # Plotting
     plt.figure(figsize=(10, 6))
 
-    # Plot val metrics for client and master model
-    plt.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name.replace("_logger", "")} per epoch val accuracies', color='blue', linestyle='-', marker='o')
-    plt.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
-    
-    # Plot acc metrics for client and master model
-    if plot_train_accs:
-        plt.plot(client_train_df['epoch'], client_train_df['train_acc'], label=f'{client_name.replace("_logger", "")} per epoch train accuracies', linestyle='-', marker='o')
-        plt.plot(master_train_df['epoch'], master_train_df['test_acc'], label='global train accuracy after each round', linestyle='-', marker='o')
-    else:
-        pass
+    if task == "sc":
+        # Plot val metrics for client and master model for sequence classification
+        plt.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name.replace("_logger", "")} per epoch val accuracies', color='blue', linestyle='-', marker='o')
+        plt.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
 
+        # Plot acc metrics for client and master model
+        if plot_train_metrics:
+            plt.plot(client_train_df['epoch'], client_train_df['train_acc'], label=f'{client_name.replace("_logger", "")} per epoch train accuracies', linestyle='-', marker='o')
+            plt.plot(master_train_df['epoch'], master_train_df['test_acc'], label='global train accuracy after each round', linestyle='-', marker='o')
+    
+        # Labels and titles
+        plt.ylabel('Accuracy')
+        main_title = 'Accuracies across Global Rounds and Epochs'
+        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.data.glue_dataset}, Number of Clients: {cfg.sfl.num_clients}"
+        
+        plt.suptitle(main_title, fontsize=main_title_fontsize)  
+        plt.title(subtitle, fontsize=subtitle_fontsize) 
+
+    elif task == "ner":
+        # Plot F1 score metrics for client and master model for NER
+        plt.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{client_name.replace("_logger", "")} per epoch val F1', color='blue', linestyle='-', marker='o')
+        plt.plot(master_val_df['epoch'], master_val_df['test_f1'], label='global val F1 after each round', color='red', linestyle='-', marker='o')
+
+        # Plot F1 score for training metrics
+        if plot_train_metrics:
+            plt.plot(client_train_df['epoch'], client_train_df['train_f1'], label=f'{client_name.replace("_logger", "")} per epoch train F1', linestyle='-', marker='o')
+            plt.plot(master_train_df['epoch'], master_train_df['test_f1'], label='global train F1 after each round', linestyle='-', marker='o')
+
+        # Labels and titles
+        plt.ylabel('F1 Score')
+        main_title = 'F1 Scores across Global Rounds and Epochs'
+        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.data.ner_dataset}, Number of Clients: {cfg.sfl.num_clients}"
+        
+        plt.suptitle(main_title, fontsize=main_title_fontsize)  
+        plt.title(subtitle, fontsize=subtitle_fontsize) 
+    
     plt.xlabel('Cumulative Epochs')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracies across Global Rounds and Epochs')
     plt.legend()
     plt.grid(True, alpha=0.5)
     plt.savefig(os.path.join(save_dir, plot_name))
-    plt.show()

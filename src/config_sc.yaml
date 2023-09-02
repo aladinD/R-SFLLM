@@ -1,7 +1,7 @@
 sfl:
   num_clients: 3
   num_rounds: 3
-  num_epochs: 30
+  num_epochs: 10
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
@@ -20,6 +20,7 @@ model:
   config:
     pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
     num_labels: 2 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
+  task: "sc"
 
 optimizer:
   lr: 1e-5
@@ -31,7 +32,7 @@ data:
   num_workers: 1
   model_type: ${model.config.pretrained_model_name_or_path}
   num_splits: ${sfl.num_clients}
-  # truncate: 250
+  truncate: 250
 
 trainer:
 
