@@ -33,7 +33,7 @@ class NERDataModuleBase(LightningDataModule, ABC):
 
     def prepare_data(self) -> None:
         """"
-        Loads the specified GLUE dataset.
+        Loads the specified NER dataset.
         """
         if self.ner_dataset == "conll2012_ontonotesv5":
             self.dataset = load_dataset(self.ner_dataset, "english_v12")

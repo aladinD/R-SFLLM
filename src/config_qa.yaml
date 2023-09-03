@@ -1,0 +1,58 @@
+sfl:
+  num_clients: 3
+  num_rounds: 3
+  num_epochs: 3
+  process: "parallel" # from : {"parallel" or "sequential"}
+
+training:
+  run_name: "run_0"
+  base_dir: "results"
+
+  # You do not need to change these paths if you're not specifically wanting to; they will be created automatically
+  client_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/client_ckpts/
+  master_ckpts_path: ${training.base_dir}/${training.run_name}/ckpts/master_ckpts/
+  log_path: ${training.base_dir}/${training.run_name}/logs/
+  client_log_path: ${training.base_dir}/${training.run_name}/logs/clients/
+  master_log_path: ${training.base_dir}/${training.run_name}/logs/master/
+  plot_path: ${training.base_dir}/${training.run_name}/plots/
+
+model:
+  config:
+    pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
+    num_labels: 2 # specific to dataset {"conll2003": 10, "wnut_17": 14, "conll2012_ontonotesv5" : 38}
+  task: "qa"
+
+optimizer:
+  lr: 1e-5
+  eps: 1e-8
+
+data:
+  qa_dataset: "squad" # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
+  batch_size: 128
+  num_workers: 1
+  model_type: ${model.config.pretrained_model_name_or_path}
+  num_splits: ${sfl.num_clients}
+  truncate: 100
+
+trainer:
+
+  # min_epochs: 1 # prevents early stopping
+  max_epochs: ${sfl.num_epochs}
+
+  accelerator: cuda
+  # devices: 1
+
+  # mixed precision for extra speed-up
+  # precision: 16
+
+  # comment out these lines if you are NOT using a simulation dataset
+  # limit_train_batches: 100
+  # limit_val_batches: 10
+  # limit_test_batches: 10
+
+  # perform a validation loop every N training epochs
+  # check_val_every_n_epoch: 1
+
+  # set True to to ensure deterministic results
+  # makes training slower but gives more reproducibility than just setting seeds
+  deterministic: False
