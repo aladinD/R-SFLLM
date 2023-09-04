@@ -114,6 +114,7 @@ def main(cfg):
     # Get dataloaders
     log.info("LOADING DATA")
     train_dls, val_dls = get_dls(cfg, master=False)
+    print("LNE : ", len(train_dls[1]))
 
     # Instantiate model
     log.info("INSTANTIATING MODEL")

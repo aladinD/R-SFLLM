@@ -2,7 +2,7 @@ from datasets import load_dataset, DatasetDict
 from pytorch_lightning import LightningDataModule
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, BertTokenizerFast
+from transformers import AutoTokenizer
 from typing import List
 from abc import ABC, abstractmethod
 import os
@@ -220,7 +220,9 @@ class OntoNotesDataModule(NERDataModuleBase):
             pass
 
         # Tokenization
+        print("Before Tokenization:", len(self.train_dataset))
         self.train_dataset = self._tokenize(self.train_dataset)
+        print("After Tokenization:", len(self.train_dataset))
         self.val_dataset = self._tokenize(self.val_dataset)
 
 
@@ -245,6 +247,11 @@ class OntoNotesDataModule(NERDataModuleBase):
                 ner_tags = sentence['named_entities']
                 all_sentences.append(" ".join(words))
                 all_labels.append(ner_tags)
+
+        # Truncate after flattening
+        if self.truncate is not None:
+            all_sentences = all_sentences[:self.truncate]
+            all_labels = all_labels[:self.truncate]
 
         # Tokenizing the sentences
         tokenizer = AutoTokenizer.from_pretrained(self.model_type)
