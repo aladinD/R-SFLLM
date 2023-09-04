@@ -40,7 +40,10 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
         add_pooling_layer = True
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
-        # Scheduler params
+        # Optimizer params
+        self.lr_val = None
+        self.eps_val = None
+        self.warmup = None
         self.scheduler_training_steps = None
 
         # Classes params
@@ -293,8 +296,10 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
     
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
-        lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=self.scheduler_training_steps)  # Add to config! 
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr_val, eps=self.eps_val)
+        lr_scheduler = get_linear_schedule_with_warmup(optimizer, 
+                                                       num_warmup_steps=self.warmup * self.scheduler_training_steps if self.warmup is not None else 1256, 
+                                                       num_training_steps=self.scheduler_training_steps) 
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step", "frequency": 1}]
 
 
@@ -331,7 +336,10 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
         add_pooling_layer = True
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
-        # Scheduler params
+        # Optimizer params
+        self.lr_val = None
+        self.eps_val = None
+        self.warmup = None
         self.scheduler_training_steps = None
 
         # Classes params
@@ -625,8 +633,10 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
     
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
-        lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=self.scheduler_training_steps)  # Add to config! 
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr_val, eps=self.eps_val)
+        lr_scheduler = get_linear_schedule_with_warmup(optimizer, 
+                                                       num_warmup_steps=self.warmup * self.scheduler_training_steps if self.warmup is not None else 1256, 
+                                                       num_training_steps=self.scheduler_training_steps) 
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step", "frequency": 1}]
 
 
@@ -657,7 +667,10 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
         add_pooling_layer = True
         self.pooler = BertPooler(config) if add_pooling_layer else None
 
-        # Scheduler params
+        # Optimizer params
+        self.lr_val = None
+        self.eps_val = None
+        self.warmup = None
         self.scheduler_training_steps = None
 
         # Classes params
@@ -1001,8 +1014,10 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
     
 
     def configure_optimizers(self) -> Tuple[List[torch.optim.Optimizer], List[torch.optim.lr_scheduler._LRScheduler]]:
-        optimizer = torch.optim.AdamW(self.parameters(), lr=1e-5, eps=1e-6)   # Add to config! 
-        lr_scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=1256, num_training_steps=self.scheduler_training_steps)  # Add to config! 
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr_val, eps=self.eps_val)
+        lr_scheduler = get_linear_schedule_with_warmup(optimizer, 
+                                                       num_warmup_steps=self.warmup * self.scheduler_training_steps if self.warmup is not None else 1256, 
+                                                       num_training_steps=self.scheduler_training_steps) 
         return [optimizer], [{"scheduler": lr_scheduler, "interval": "step", "frequency": 1}]
 
 

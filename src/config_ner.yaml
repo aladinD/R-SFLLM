@@ -5,7 +5,7 @@ sfl:
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
-  run_name: "run_0"
+  run_name: "ner_run_0"
   base_dir: "results"
 
   # You do not need to change these paths if you're not specifically wanting to; they will be created automatically
@@ -24,7 +24,8 @@ model:
 
 optimizer:
   lr: 1e-5
-  eps: 1e-8
+  eps: 1e-6
+  warmup: # 0.1 or empty for None
 
 data:
   ner_dataset: "conll2012_ontonotesv5" # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
@@ -35,7 +36,6 @@ data:
   truncate: 10
 
 trainer:
-
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
 

@@ -5,7 +5,7 @@ sfl:
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
-  run_name: "run_0"
+  run_name: "qa_run_0"
   base_dir: "results"
 
   # You do not need to change these paths if you're not specifically wanting to; they will be created automatically
@@ -19,15 +19,16 @@ training:
 model:
   config:
     pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
-    num_labels: 2 # specific to dataset {"conll2003": 10, "wnut_17": 14, "conll2012_ontonotesv5" : 38}
+    num_labels: 2 # specific to dataset {"squad": 2}
   task: "qa"
 
 optimizer:
   lr: 1e-5
-  eps: 1e-8
+  eps: 1e-6
+  warmup: # 0.1 or empty for None
 
 data:
-  qa_dataset: "squad" # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
+  qa_dataset: "squad" # from : {"squad"} 
   batch_size: 128
   num_workers: 1
   model_type: ${model.config.pretrained_model_name_or_path}
@@ -35,7 +36,6 @@ data:
   truncate: 100
 
 trainer:
-
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
 
