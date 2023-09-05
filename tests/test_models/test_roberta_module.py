@@ -1,6 +1,6 @@
 import pytest
 import torch
-from src.models.bert_module import BERTForSequenceClassificationModule, BERTForTokenClassificationModule
+from src.models.roberta_module import RoBERTaForSequenceClassificationModule, RoBERTaForTokenClassificationModule
 from src.datamodules.glue_datamodule import SST2DataModule
 from src.datamodules.ner_datamodule import CoNLL2003DataModule
 from pytorch_lightning.utilities.parsing import AttributeDict
@@ -9,13 +9,13 @@ from pytorch_lightning import Trainer
 
 MODEL_DATAMODULE_MAPPING = {
     "bert_sequence_classification": {
-        "model": BERTForSequenceClassificationModule,
+        "model": RoBERTaForSequenceClassificationModule,
         "datamodule": SST2DataModule,
         "num_classes": 2,
         "label_shape": (32,)  # for a batch size of 32
     },
     "bert_token_classification": {
-        "model": BERTForTokenClassificationModule,
+        "model": RoBERTaForTokenClassificationModule,
         "datamodule": CoNLL2003DataModule,
         "num_classes": 10,
         "label_shape": (32, 128)  # for a batch size of 32 and sequence length of 128
@@ -113,9 +113,9 @@ def test_training_with_trainer(model, datamodule):
     model.scheduler_training_steps = 3 * len(datamodule.train_dataloader())
 
     # Set number of classes based on the model type
-    if isinstance(model, BERTForSequenceClassificationModule):
+    if isinstance(model, RoBERTaForSequenceClassificationModule):
         model.num_classes = 2
-    elif isinstance(model, BERTForTokenClassificationModule):
+    elif isinstance(model, RoBERTaForTokenClassificationModule):
         model.num_classes = 10
     else:
         raise ValueError("Unexpected model type!")

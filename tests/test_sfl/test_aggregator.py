@@ -1,9 +1,10 @@
 import pytest
 import torch
-from src.aggregator import Aggregator
-from src.models.bert_module import CustomBertModelModule
+from src.sfl.aggregator import Aggregator
+from src.models.bert_module import BERTForSequenceClassificationModule
 from torch.nn.parameter import Parameter
 from pytorch_lightning.utilities.parsing import AttributeDict
+
 
 @pytest.fixture
 def aggregator():
@@ -14,70 +15,77 @@ def aggregator():
     return Aggregator(name="test_aggregator")
 
 
-def test_accumulate_attentions(aggregator):
-    # Create a list of dummy client models for testing
+@pytest.fixture
+def client_models():
+    """
+    Fixture for creating a list of sample BERTForSequenceClassification model instances.
+    """
+    num_clients = 3
     model_config = AttributeDict({
         "pretrained_model_name_or_path": "bert-base-uncased",
         "num_labels": 2
     })
+    return [BERTForSequenceClassificationModule.from_pretrained(**model_config) for _ in range(num_clients)]
 
-    client_models = [CustomBertModelModule.from_pretrained(**model_config) for _ in range(3)]
 
+def test_accumulate_attentions(aggregator, client_models):
+    """
+    Test for the accumulate_attentions method of the Aggregator class.
+    """
     # Call the accumulate_attentions method and get the results
     attentions = aggregator.accumulate_attentions(client_models)
+    assert isinstance(attentions, list)
 
     # Check if the attentions list contains the expected number of dictionaries
     assert len(attentions) == len(client_models)
 
     # Check if each dictionary in the attentions list contains only "bert.encoder" parameters
     for attention in attentions:
-        for param_name in attention.keys():
-            assert param_name.startswith("bert.encoder")
+        for name, param in attention.items():
+            assert name.startswith("bert.encoder")
+            assert isinstance(param, Parameter)
 
 
-def test_accumulate_heads(aggregator):
-    # Create a list of dummy client models for testing
-    model_config = AttributeDict({
-        "pretrained_model_name_or_path": "bert-base-uncased",
-        "num_labels": 2
-    })
-
-    client_models = [CustomBertModelModule.from_pretrained(**model_config) for _ in range(3)]
-
+def test_accumulate_heads(aggregator, client_models):
+    """
+    Test for the accumulate_heads method of the Aggregator class.
+    """
     # Call the accumulate_heads method and get the results
     heads = aggregator.accumulate_heads(client_models)
+    assert isinstance(heads, list)
 
     # Check if the heads list contains the expected number of dictionaries
     assert len(heads) == len(client_models)
 
     # Check if each dictionary in the heads list contains only "classifier" and "bert.pooler" parameters
     for head in heads:
-        for param_name in head.keys():
-            assert param_name.startswith("classifier") or param_name.startswith("bert.pooler")
+        for name, param in head.items():
+            assert name.startswith("classifier") or name.startswith("bert.pooler")
+            assert isinstance(param, Parameter)
 
 
-def test_accumulate_embeddings(aggregator):
-    # Create a list of dummy client models for testing
-    model_config = AttributeDict({
-        "pretrained_model_name_or_path": "bert-base-uncased",
-        "num_labels": 2
-    })
-
-    client_models = [CustomBertModelModule.from_pretrained(**model_config) for _ in range(3)]
-
+def test_accumulate_embeddings(aggregator, client_models):
+    """
+    Test for the accumulate_embeddings method of the Aggregator class.
+    """
     # Call the accumulate_embeddings method and get the results
     embeddings = aggregator.accumulate_embeddings(client_models)
+    assert isinstance(embeddings, list)
 
     # Check if the embeddings list contains the expected number of dictionaries
     assert len(embeddings) == len(client_models)
 
     # Check if each dictionary in the embeddings list contains only "bert.embeddings" parameters
     for embedding in embeddings:
-        for param_name in embedding.keys():
-            assert param_name.startswith("bert.embeddings")
+        for name, param in embedding.items():
+            assert name.startswith("bert.embeddings")
+            assert isinstance(param, Parameter)
 
 
 def test_aggregate(aggregator):
+    """
+    Test for the aggregate method of the Aggregator class.
+    """
     # Create a list of dummy gradients for testing
     client_gradients = [
         {
