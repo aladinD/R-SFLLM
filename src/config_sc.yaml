@@ -1,11 +1,11 @@
 sfl:
   num_clients: 3
-  num_rounds: 3
-  num_epochs: 10
+  num_rounds: 10
+  num_epochs: 50
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
-  run_name: "sc_run_0"
+  run_name: "sc_run_roberta_sst2_c3_r10_e50_with_warmup"
   base_dir: "results"
 
   # You do not need to change these paths if you're not specifically wanting to; they will be created automatically
@@ -18,22 +18,22 @@ training:
 
 model:
   config:
-    pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
+    pretrained_model_name_or_path: "roberta-base" # from : {"bert-base-uncased", "roberta-base"}  
     num_labels: 2 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
   task: "sc"
 
 optimizer:
   lr: 1e-5
   eps: 1e-6
-  warmup: # 0.1 or empty for None
+  warmup: 0.1 # 0.1 or empty for None (will use 1256 steps instead)
 
 data:
   glue_dataset: "sst2" # from : {"sst2", "mrpc", "qnli", "mnli"} 
-  batch_size: 256
+  batch_size: 128
   num_workers: 1
   model_type: ${model.config.pretrained_model_name_or_path}
   num_splits: ${sfl.num_clients}
-  truncate: 250
+  # truncate: 10
 
 trainer:
   # min_epochs: 1 # prevents early stopping
