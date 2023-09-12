@@ -4,6 +4,7 @@ import random
 import hydra
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 from joblib import Parallel, delayed
 
@@ -32,7 +33,11 @@ def parallel_train(client, cfg, r):
     Train and save a client model seperately in a parallel job.
     """
     logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger, log_every_n_steps=1)
+
+    # Disable checkpoints logging 
+    checkpoint_callback = ModelCheckpoint(save_top_k=0, every_n_epochs=int(1e9))
+    
+    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger, log_every_n_steps=1, callbacks=[checkpoint_callback])
     client.trainer.fit(client.model, client.train_data, client.val_data)
     torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
 

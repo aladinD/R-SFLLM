@@ -1,11 +1,11 @@
 sfl:
-  num_clients: 3
+  num_clients: 7
   num_rounds: 10
   num_epochs: 50
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
-  run_name: "sc_run_roberta_sst2_c3_r10_e50_with_warmup"
+  run_name: "sc_run_roberta_sst2_c7_r10_e50"
   base_dir: "results"
 
   # You do not need to change these paths if you're not specifically wanting to; they will be created automatically

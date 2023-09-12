@@ -4,6 +4,7 @@ import random
 import hydra
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 from joblib import Parallel, delayed
 
@@ -15,8 +16,6 @@ from src.models.bert_module import BERTForSequenceClassificationModule
 from src.models.roberta_module import RoBERTaForSequenceClassificationModule
 from src.utils import plotting
 from src.utils.utils import init_dir
-
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 # Seeding
