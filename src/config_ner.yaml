@@ -16,6 +16,10 @@ training:
   master_log_path: ${training.base_dir}/${training.run_name}/logs/master/
   plot_path: ${training.base_dir}/${training.run_name}/plots/
 
+wireless:
+  _target_: src.models.components.wireless_module.WirelessModule
+  num_users: ${sfl.num_clients}
+
 model:
   config:
     pretrained_model_name_or_path: "roberta-base" # from : {"bert-base-uncased", "roberta-base"}  
@@ -38,9 +42,9 @@ data:
 trainer:
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
-
+  fast_dev_run: True
   accelerator: cuda
-  # devices: 1
+  devices: [7]
 
   # mixed precision for extra speed-up
   # precision: 16

@@ -9,15 +9,15 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 from joblib import Parallel, delayed
 
-from src.models.components.aggregator import Aggregator
-from src.models.components.client import Client
-from src.models.components.wireless_module import WirelessModule
-from src import utils
-from src.datamodules.ner_datamodule import CoNLL2003DataModule, WNUT17DataModule, OntoNotesDataModule
-from src.models.bert_module import BERTForTokenClassificationModule
-from src.models.roberta_module import RoBERTaForTokenClassificationModule
-from src.utils import plotting
-from src.utils.utils import init_dir
+from models.components.aggregator import Aggregator
+from models.components.client import Client
+from models.components.wireless_module import WirelessModule
+import utils
+from datamodules.ner_datamodule import CoNLL2003DataModule, WNUT17DataModule, OntoNotesDataModule
+from models.bert_module import BERTForTokenClassificationModule
+from models.roberta_module import RoBERTaForTokenClassificationModule
+from utils import plotting
+from utils.utils import init_dir
 
 
 # Seeding
@@ -186,7 +186,6 @@ def main(cfg):
                 torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
                 
         elif cfg.sfl.process == "parallel":
-
             # Load client models
             for client in clients:
                 # Update communication MSEs if needed
