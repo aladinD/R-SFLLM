@@ -1,6 +1,11 @@
 import numpy as np
 from typing import Optional, Callable
 from isac.utils import db2lin
+from resilient_comms.metrics import rx_performance_metric
+from resilient_comms.sim_helpers import get_channels
+from resilient_comms.bfra import iterative_waterfilling_rb_allocation
+from resilient_comms.receivers import mmse_receiver
+from resilient_comms.jammer import opt_jammer
 
 class WirelessModule:
     def __init__(
@@ -91,13 +96,20 @@ class WirelessModule:
         
         # jammer settings
         self.num_tx_jammer = num_tx_jammer
-        self.power_jammer_db = power_jammer_db
+        self.power_jammer = db2lin(power_jammer_db)
         # tx and rx strategies
-        self.bfra_algo = bfra_algo
-        self.rx_algo = rx_algo
+        if bfra_algo is None:
+            self.bfra_algo = iterative_waterfilling_rb_allocation
+        else:    
+            self.bfra_algo = bfra_algo
+
+        if rx_algo is None:
+            self.rx_algo = mmse_receiver
+        else:
+            self.rx_algo = rx_algo
         self.eta = eta
         # channel settings
-        self.noise_power_db = noise_power_db
+        self.noise_power = db2lin(noise_power_db)
         self.center_aoa = center_aoa
         self.aoa_spread = aoa_spread
         self.aoa_spacing = aoa_spacing
@@ -113,4 +125,71 @@ class WirelessModule:
         :return: Communication MSEs as :class`np.ndarray` with shape (num_users,).
         :rtype: np.ndarray
         """        
+        channels, channel_jammer, _, rx_arr, _, mpcc_jammer = get_channels(
+            num_users=self.num_users, num_rx=self.num_rx, num_tx=self.num_tx,
+            num_tx_jammer=self.num_tx_jammer, aoa_spread=self.aoa_spread,
+            aoa_spacing=self.aoa_spacing, center_aoa=self.center_aoa,
+            center_aoa_jammer=self.center_aoa_jammer, aoa_spread_jammer=self.aoa_spread_jammer,
+            path_loss=self.path_loss, fc=self.fc,
+            num_sc=self.num_subcarriers, num_syms=self.num_symbols,
+            num_paths=self.num_paths 
+        )
+        noise_covariance = (self.noise_power / self.num_rx)*np.eye(self.num_rx)
+        noise_covariance = noise_covariance.reshape(1, 1, *noise_covariance.shape)
+
+        aoas = mpcc_jammer.aoas
+        steering_mat = rx_arr.steering_matrix(grid=aoas, axis=1)
+        tmp = steering_mat @ steering_mat.conj().T
+        cov_mat_aoa = self.eta * tmp.reshape(1, 1, *tmp.shape) + noise_covariance
+    
+        allocs, pows, precoders, receivers, mses_no_jammer = \
+            self.run_algorithm(channels=channels, noise_covariance=noise_covariance)
+
+        opt_jammer_cov = opt_jammer(channel_jammer=channel_jammer, 
+                                    p_j=self.power_jammer, 
+                                    channels=channels, 
+                                    pows=pows, 
+                                    allocs=allocs)
+        cov_mat_opt = channel_jammer @ opt_jammer_cov @ channel_jammer.transpose((0, 2, 1)).conj() + noise_covariance
+        mses_no_protection = rx_performance_metric(
+            channels=channels, noise_covariance=cov_mat_opt, 
+            receivers=receivers, precoders=precoders, powers=pows, allocs=allocs
+        )[-1]
+
+        allocs_p, pows_p, precoders_p, receivers_p, mses_protection = \
+            self.run_algorithm(channels=channels, noise_covariance=noise_covariance)
+
         return np.ones((self.num_users)) * 0.1
+    
+    def run_algorithm(self, channels: np.ndarray, noise_covariance: np.ndarray, **kwargs):
+        """Runs tx and receive strategies using the provided channels and noise covariance.
+
+        :param channels: Channel matrices for each user and RB as tensor (num_users, num_rbs, num_rx, num_tx)
+        :type channels: np.ndarray
+        :param noise_covariance: Noise covariances in the same format (num_users, num_rbs, num_rx, num_rx)
+        :type noise_covariance: np.ndarray
+        :return: Per user MSEs
+        :rtype: np.ndarray
+        """        
+        allocs, pows, precoders, _ = self.bfra_algo(
+            channels=channels, 
+            noise_covariance=noise_covariance, 
+            power_constraints=self.power_constraints, 
+            num_rbs_per_user=self.num_rbs_per_user, 
+            **kwargs)
+        receivers = self.rx_algo(
+            channels=channels, 
+            precoders=precoders, 
+            powers=pows, 
+            allocs=allocs, 
+            noise_covariance=noise_covariance, 
+            **kwargs)
+        mses = rx_performance_metric(
+            channels=channels, 
+            receivers=receivers, 
+            precoders=precoders, 
+            powers=pows, 
+            allocs=allocs, 
+            noise_covariance=noise_covariance
+        )[-1]
+        return allocs, pows, precoders, receivers, mses    
