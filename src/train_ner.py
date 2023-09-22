@@ -8,8 +8,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 from joblib import Parallel, delayed
 
-from sfl.aggregator import Aggregator
-from sfl.client import Client
+from src.models.components.aggregator import Aggregator
+from src.models.components.client import Client
 from src import utils
 from src.datamodules.ner_datamodule import CoNLL2003DataModule, WNUT17DataModule, OntoNotesDataModule
 from src.models.bert_module import BERTForTokenClassificationModule
