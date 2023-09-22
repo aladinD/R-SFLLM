@@ -1,6 +1,6 @@
 import pytest
 import torch
-from src.sfl.aggregator import Aggregator
+from src.models.components.aggregator import Aggregator
 from src.models.bert_module import BERTForSequenceClassificationModule
 from torch.nn.parameter import Parameter
 from pytorch_lightning.utilities.parsing import AttributeDict

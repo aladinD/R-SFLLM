@@ -8,12 +8,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 from joblib import Parallel, delayed
 
-from sfl.aggregator import Aggregator
-from sfl.client import Client
+from src.models.components.aggregator import Aggregator
+from src.models.components.client import Client
 from src import utils
 from src.datamodules.qa_datamodule import SQUADDataModule
 from src.models.bert_module import BERTForQuestionAnsweringModule
-# from src.models.roberta_module import RoBERTaForTokenClassificationModule
 from src.utils import plotting 
 from src.utils.utils import init_dir
 

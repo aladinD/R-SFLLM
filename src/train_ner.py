@@ -1,5 +1,6 @@
 import copy
 import random
+from typing import Optional
 
 import hydra
 import numpy as np
@@ -10,6 +11,7 @@ from joblib import Parallel, delayed
 
 from src.models.components.aggregator import Aggregator
 from src.models.components.client import Client
+from src.models.components.wireless_module import WirelessModule
 from src import utils
 from src.datamodules.ner_datamodule import CoNLL2003DataModule, WNUT17DataModule, OntoNotesDataModule
 from src.models.bert_module import BERTForTokenClassificationModule
@@ -154,17 +156,24 @@ def main(cfg):
     log.info("INSTANTIATING AGGREGATOR")
     aggregator = Aggregator(name="aggregator")
 
+    # Instantiate wireless module
+    wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
     # SFL global round loop
     log.info("STARTING SFL TRAINING")
     for r in range(cfg.sfl.num_rounds):
         
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
-
+        # Simulate communication each round
+        if wireless is not None:
+            mses = wireless.run()
         # Client training loop
         if cfg.sfl.process == "sequential":
-
+            
             # Load client models
-            for client in clients:
+            for i, client in enumerate(clients):
+                # Update communication MSEs if needed
+                if wireless is not None:
+                    client.add_noise = mses[i]
                 if r!= 0:
                     client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
@@ -180,6 +189,9 @@ def main(cfg):
 
             # Load client models
             for client in clients:
+                # Update communication MSEs if needed
+                if wireless is not None:
+                    client.add_noise = mses[i]
                 if r!= 0:
                     client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:

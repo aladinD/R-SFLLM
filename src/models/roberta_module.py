@@ -1,5 +1,5 @@
 from typing import Any, List, Optional, Tuple, Union
-
+import math
 import torch
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
@@ -48,7 +48,8 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         self.num_classes = None
 
         # Assign noise
-        self.add_noise = False
+        # this is the communications mse
+        self.add_noise: Optional[float] = None
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -136,8 +137,8 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
 
         # Add noise to the input embeddings
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise:
-            noise = torch.normal(mean=0, std=0.1, size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:
             pass
@@ -341,7 +342,8 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         self.num_classes = None
 
         # Assign noise
-        self.add_noise = False
+        # this is the communications mse
+        self.add_noise: Optional[float] = None
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -429,8 +431,8 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Add noise to the input embeddings
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise:
-            noise = torch.normal(mean=0, std=0.1, size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:
             pass
