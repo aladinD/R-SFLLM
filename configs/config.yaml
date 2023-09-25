@@ -1,14 +1,12 @@
 # @package _global_
 defaults:
   - _self_
-  - model: bert.yaml
-  - datamodule: connl2003.yaml
-  - wireless: default.yaml
-  - paths: default.yaml
-  - sfl: default.yaml
+  - datamodule: conll2003.yaml # datamodule
+  - wireless: no_jammer.yaml # wireless specification
+  - paths: default.yaml # paths to different stuff like datasets, logs, project root, etc.
+  - hydra: default.yaml # additional hydra options
 
-sfl:
-  num_clients: 3
-  num_rounds: 3
-  num_epochs: 1
-  process: "parallel" # from : {"parallel" or "sequential"}
+sfl: default.yaml # split federated learning config
+model: bert_model.yaml # model being trained
+
+task_name: ner

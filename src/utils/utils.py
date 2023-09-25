@@ -220,8 +220,9 @@ def init_dir(cfg: DictConfig) -> None:
     Initializes the directory for the experiment.
     """
     # Define the base directory
-    base_dir = cfg.training.base_dir
-    run_dir = os.path.join(base_dir, cfg.training.run_name)
+    # base_dir = cfg.training.base_dir
+    # run_dir = os.path.join(base_dir, cfg.training.run_name)
+    run_dir = cfg.paths.output_dir
 
     # List of directories to create
     dirs_to_create = [
@@ -234,8 +235,8 @@ def init_dir(cfg: DictConfig) -> None:
     ]
 
     # If base directory doesn't exist, create it
-    if not os.path.exists(base_dir):
-        os.makedirs(base_dir)
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir)
 
     # If the run directory exists, remove it to overwrite it
     if os.path.exists(run_dir):

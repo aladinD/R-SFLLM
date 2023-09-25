@@ -20,6 +20,10 @@ from models.roberta_module import RoBERTaForTokenClassificationModule
 from utils import plotting
 from utils.utils import init_dir
 
+import rootutils
+
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+
 
 # Seeding
 seed = 42
@@ -29,6 +33,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 random.seed(seed)
 np.random.seed(seed)
+
+
 
 
 def parallel_train(client, cfg, r):
@@ -51,7 +57,7 @@ def get_dls(cfg, master: bool = False):
     Loads the complete train and val dataloaders for the master.
     """
     if master is False:
-        datamodule: LightningDataModule = hydra.utils.instantiate(cfg.data)
+        datamodule: LightningDataModule = hydra.utils.instantiate(cfg.datamodule)
         # if cfg.data.ner_dataset == "conll2003":
         #     datamodule = CoNLL2003DataModule(**cfg.data)
         # elif cfg.data.ner_dataset == "wnut_17":
@@ -66,8 +72,8 @@ def get_dls(cfg, master: bool = False):
         # return datamodule.train_dataloader(), datamodule.val_dataloader()
     
     else:
-        data_config = cfg.data # maybe deepcopy
-        data_config = None
+        data_config = cfg.datamodule # maybe deepcopy
+        data_config.num_splits = None
         datamodule: LightningDataModule = hydra.utils.instantiate(data_config)
         # data_config = dict(cfg.data)
         # data_config['num_splits'] = None
@@ -113,12 +119,12 @@ def evaluate_master_model(model, cfg, r):
     validation_trainer.test(master.model, master.val_data)
 
 
-@hydra.main(version_base="1.3", config_path="configs/", config_name="config.yaml")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="config.yaml")
 def main(cfg):
     
     # Logger
     log = utils.get_pylogger(__name__)
-
+    print(cfg)
     # Initialize directory
     log.info("INITIALIZING DIRECTORY")
     init_dir(cfg)
@@ -128,129 +134,129 @@ def main(cfg):
     train_dls, val_dls = get_dls(cfg, master=False)
     print("LNE : ", len(train_dls[1]))
 
-    # Instantiate model
-    log.info("INSTANTIATING MODEL")
-    model_target = cfg.model._target_
-    model = hydra.utils.instantiate(model_target, _partial_=True).from_pretrained(**cfg.model.config)
-    # if cfg.model.config.pretrained_model_name_or_path == "bert-base-uncased":
-    #     model = BERTForTokenClassificationModule.from_pretrained(**cfg.model.config)
-    # elif cfg.model.config.pretrained_model_name_or_path == "roberta-base":
-    #     model = RoBERTaForTokenClassificationModule.from_pretrained(**cfg.model.config)
-    # else:
-    #     log.error("INVALID MODEL TYPE FROM : {bert-base-uncased, roberta-base}")
+    # # Instantiate model
+    # log.info("INSTANTIATING MODEL")
+    # model_target = cfg.model._target_
+    # model = hydra.utils.instantiate(model_target, _partial_=True).from_pretrained(**cfg.model.config)
+    # # if cfg.model.config.pretrained_model_name_or_path == "bert-base-uncased":
+    # #     model = BERTForTokenClassificationModule.from_pretrained(**cfg.model.config)
+    # # elif cfg.model.config.pretrained_model_name_or_path == "roberta-base":
+    # #     model = RoBERTaForTokenClassificationModule.from_pretrained(**cfg.model.config)
+    # # else:
+    # #     log.error("INVALID MODEL TYPE FROM : {bert-base-uncased, roberta-base}")
 
-    # # Set additional model configurations
-    # model.lr_val = cfg.optimizer.lr
-    # model.eps_val = cfg.optimizer.eps
-    # model.warmup = cfg.optimizer.warmup
-    # model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
-    # model.num_classes = cfg.model.config.num_labels
-    # model.init_metrics()
-    # model.add_noise = False
+    # # # Set additional model configurations
+    # # model.lr_val = cfg.optimizer.lr
+    # # model.eps_val = cfg.optimizer.eps
+    # # model.warmup = cfg.optimizer.warmup
+    # # model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
+    # # model.num_classes = cfg.model.config.num_labels
+    # # model.init_metrics()
+    # # model.add_noise = False
 
-    # Instantiate clients
-    log.info("INSTANTIATING CLIENTS")
-    clients = []
-    for i in range(cfg.sfl.num_clients):
-        client = Client(id=i,
-                        model=copy.deepcopy(model),
-                        trainer=pl.Trainer(**cfg.trainer, devices=[i]),
-                        train_data=train_dls[i],
-                        val_data=val_dls[i])
-        clients.append(client)
+    # # Instantiate clients
+    # log.info("INSTANTIATING CLIENTS")
+    # clients = []
+    # for i in range(cfg.sfl.num_clients):
+    #     client = Client(id=i,
+    #                     model=copy.deepcopy(model),
+    #                     trainer=pl.Trainer(**cfg.trainer, devices=[i]),
+    #                     train_data=train_dls[i],
+    #                     val_data=val_dls[i])
+    #     clients.append(client)
 
-    # Instantiate aggregator
-    log.info("INSTANTIATING AGGREGATOR")
-    aggregator = Aggregator(name="aggregator")
+    # # Instantiate aggregator
+    # log.info("INSTANTIATING AGGREGATOR")
+    # aggregator = Aggregator(name="aggregator")
 
-    # Instantiate wireless module
-    wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
-    # SFL global round loop
-    log.info("STARTING SFL TRAINING")
-    for r in range(cfg.sfl.num_rounds):
+    # # Instantiate wireless module
+    # wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
+    # # SFL global round loop
+    # log.info("STARTING SFL TRAINING")
+    # for r in range(cfg.sfl.num_rounds):
         
-        log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
-        # Simulate communication each round
-        if wireless is not None:
-            mses = wireless()
-            log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
-        # Client training loop
-        if cfg.sfl.process == "sequential":
+    #     log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
+    #     # Simulate communication each round
+    #     if wireless is not None:
+    #         mses = wireless()
+    #         log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
+    #     # Client training loop
+    #     if cfg.sfl.process == "sequential":
             
-            # Load client models
-            for i, client in enumerate(clients):
-                # Update communication MSEs if needed
-                if wireless is not None:
-                    client.model.add_noise = mses[i]
-                if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
-                else:
-                    pass
+    #         # Load client models
+    #         for i, client in enumerate(clients):
+    #             # Update communication MSEs if needed
+    #             if wireless is not None:
+    #                 client.model.add_noise = mses[i]
+    #             if r!= 0:
+    #                 client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+    #             else:
+    #                 pass
 
-                # Train client models sequentially on GPU:0
-                logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
-                client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
-                client.trainer.fit(client.model, client.train_data, client.val_data)
-                torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
+    #             # Train client models sequentially on GPU:0
+    #             logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
+    #             client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
+    #             client.trainer.fit(client.model, client.train_data, client.val_data)
+    #             torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
                 
-        elif cfg.sfl.process == "parallel":
-            # Load client models
-            for client in clients:
-                # Update communication MSEs if needed
-                if wireless is not None:
-                    client.add_noise = mses[i]
-                if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
-                else:
-                    pass
+    #     elif cfg.sfl.process == "parallel":
+    #         # Load client models
+    #         for client in clients:
+    #             # Update communication MSEs if needed
+    #             if wireless is not None:
+    #                 client.add_noise = mses[i]
+    #             if r!= 0:
+    #                 client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+    #             else:
+    #                 pass
 
-            # Train client models in parallel
-            Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, r) for client in clients)
+    #         # Train client models in parallel
+    #         Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, r) for client in clients)
 
-        else:
-            log.error("INVALID PROCESS TYPE from {parallel, sequential}")
+    #     else:
+    #         log.error("INVALID PROCESS TYPE from {parallel, sequential}")
 
-        log.info("ALL CLIENTS TRAINED")
+    #     log.info("ALL CLIENTS TRAINED")
 
-        # Reload all clients to ensure proper model states after sequential/parallel training
-        for client in clients:
-            client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+    #     # Reload all clients to ensure proper model states after sequential/parallel training
+    #     for client in clients:
+    #         client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
 
-        # Aggregate client models
-        attentions = aggregator.accumulate_attentions([client.model for client in clients])
-        heads = aggregator.accumulate_heads([client.model for client in clients])
-        embeddings = aggregator.accumulate_embeddings([client.model for client in clients])
+    #     # Aggregate client models
+    #     attentions = aggregator.accumulate_attentions([client.model for client in clients])
+    #     heads = aggregator.accumulate_heads([client.model for client in clients])
+    #     embeddings = aggregator.accumulate_embeddings([client.model for client in clients])
 
-        aggregated_attentions = aggregator.aggregate(attentions)
-        aggregated_heads = aggregator.aggregate(heads)
-        aggregated_embeddings = aggregator.aggregate(embeddings)
+    #     aggregated_attentions = aggregator.aggregate(attentions)
+    #     aggregated_heads = aggregator.aggregate(heads)
+    #     aggregated_embeddings = aggregator.aggregate(embeddings)
 
-        # Model update & save
-        for client in clients:
-            client.update_model(aggregated_attentions)
-            client.update_model(aggregated_heads)
-            client.update_model(aggregated_embeddings)
-            torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
+    #     # Model update & save
+    #     for client in clients:
+    #         client.update_model(aggregated_attentions)
+    #         client.update_model(aggregated_heads)
+    #         client.update_model(aggregated_embeddings)
+    #         torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
 
-        log.info("ALL CLIENTS AGGREGATED")
+    #     log.info("ALL CLIENTS AGGREGATED")
 
-        # Save master model
-        torch.save(clients[-1].model.state_dict(), cfg.training.master_ckpts_path + f"master_round_{r}.pt")
-        log.info("MASTER MODEL SAVED")
+    #     # Save master model
+    #     torch.save(clients[-1].model.state_dict(), cfg.training.master_ckpts_path + f"master_round_{r}.pt")
+    #     log.info("MASTER MODEL SAVED")
 
-        # Evaluate master model
-        log.info("EVALUATING MASTER MODEL")
-        evaluate_master_model(model, cfg, r)
+    #     # Evaluate master model
+    #     log.info("EVALUATING MASTER MODEL")
+    #     evaluate_master_model(model, cfg, r)
 
-        # End round and save metrics plot
-        if r == cfg.sfl.num_rounds - 1:
-            log.info("ALL ROUNDS COMPLETED")
-            log.info("PLOTTING & SAVING METRICS")
-            plotting.plot_metrics(cfg, 
-                                  plot_name="result.png",
-                                  save_dir=cfg.training.plot_path, 
-                                  logs_path=cfg.training.log_path, 
-                                  plot_train_metrics=False)
+    #     # End round and save metrics plot
+    #     if r == cfg.sfl.num_rounds - 1:
+    #         log.info("ALL ROUNDS COMPLETED")
+    #         log.info("PLOTTING & SAVING METRICS")
+    #         plotting.plot_metrics(cfg, 
+    #                               plot_name="result.png",
+    #                               save_dir=cfg.training.plot_path, 
+    #                               logs_path=cfg.training.log_path, 
+    #                               plot_train_metrics=False)
 
 
 if __name__ == "__main__":

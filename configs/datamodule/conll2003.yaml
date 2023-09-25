@@ -1,5 +1,5 @@
 _target_: datamodules.ner_datamodule.CoNLL2003DataModule
-ner_dataset: "conll2003" # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
+ner_dataset: conll2003 # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
 batch_size: 64
 num_workers: 1
 model_type: ${model.config.pretrained_model_name_or_path}
