@@ -11,6 +11,11 @@
 
 We study the influence of communication MSE in a MIMO-OFDM system on the model performance a split-federated learning setup under worst-case adversarial attacks.
 
+<div align="center">
+<img src="sfl_setup.png" align="center" alt="SFL Setup">
+
+</div>
+
 ## How to run
 
 Install dependencies
