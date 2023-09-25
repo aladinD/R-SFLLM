@@ -1,7 +1,7 @@
 sfl:
   num_clients: 3
   num_rounds: 3
-  num_epochs: 3
+  num_epochs: 1
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
@@ -43,7 +43,7 @@ data:
 trainer:
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
-  fast_dev_run: True
+  # fast_dev_run: True
   accelerator: cuda
   # devices: [7]
 
