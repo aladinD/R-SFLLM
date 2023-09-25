@@ -10,5 +10,5 @@ setup(
     author_email="vlad.andrei@tum.de",
     url="https://github.com/user/project",  # REPLACE WITH YOUR OWN GITHUB PROJECT LINK
     install_requires=["pytorch-lightning", "hydra-core"],
-    packages=find_packages(where=[".", "./src"]),
+    packages=find_packages(),
 )

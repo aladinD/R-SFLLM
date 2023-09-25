@@ -193,6 +193,7 @@ class WirelessModule:
             noise_covariance=noise_covariance, 
             power_constraints=self.power_constraints, 
             num_rbs_per_user=self.num_rbs_per_user, 
+            verbose=False,
             **kwargs)
         receivers = self.rx_algo(
             channels=channels, 

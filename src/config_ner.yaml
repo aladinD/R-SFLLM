@@ -17,8 +17,9 @@ training:
   plot_path: ${training.base_dir}/${training.run_name}/plots/
 
 wireless:
-  _target_: src.models.components.wireless_module.WirelessModule
+  _target_: models.components.wireless_module.WirelessModule
   num_users: ${sfl.num_clients}
+  scenario: w_protection
 
 model:
   config:
@@ -44,7 +45,7 @@ trainer:
   max_epochs: ${sfl.num_epochs}
   fast_dev_run: True
   accelerator: cuda
-  devices: [7]
+  # devices: [7]
 
   # mixed precision for extra speed-up
   # precision: 16

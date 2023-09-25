@@ -166,6 +166,7 @@ def main(cfg):
         # Simulate communication each round
         if wireless is not None:
             mses = wireless()
+            log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
         # Client training loop
         if cfg.sfl.process == "sequential":
             

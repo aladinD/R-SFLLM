@@ -9,15 +9,15 @@ import torch
 from joblib import Parallel, delayed
 from typing import Optional
 
-from src.models.components.aggregator import Aggregator
-from src.models.components.client import Client
-from src.models.components.wireless_module import WirelessModule
-from src import utils
-from src.datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
-from src.models.bert_module import BERTForSequenceClassificationModule
-from src.models.roberta_module import RoBERTaForSequenceClassificationModule
-from src.utils import plotting
-from src.utils.utils import init_dir
+from models.components.aggregator import Aggregator
+from models.components.client import Client
+from models.components.wireless_module import WirelessModule
+import utils
+from datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
+from models.bert_module import BERTForSequenceClassificationModule
+from models.roberta_module import RoBERTaForSequenceClassificationModule
+from utils import plotting
+from utils.utils import init_dir
 
 
 # Seeding
@@ -170,6 +170,7 @@ def main(cfg):
         # Simulate communication each round
         if wireless is not None:
             mses = wireless()
+            log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
         # Client training loop
         if cfg.sfl.process == "sequential":
 
