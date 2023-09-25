@@ -4,7 +4,7 @@ from isac.utils import db2lin
 from resilient_comms.metrics import rx_performance_metric
 from resilient_comms.sim_helpers import get_channels
 from resilient_comms.bfra import iterative_waterfilling_rb_allocation
-from resilient_comms.receivers import mmse_receiver
+from resilient_comms.receivers import mmse_receiver, max_sinr_receiver
 from resilient_comms.jammer import opt_jammer
 
 class WirelessModule:
@@ -106,7 +106,7 @@ class WirelessModule:
             self.bfra_algo = bfra_algo
 
         if rx_algo is None:
-            self.rx_algo = mmse_receiver
+            self.rx_algo = max_sinr_receiver
         else:
             self.rx_algo = rx_algo
         self.eta = eta

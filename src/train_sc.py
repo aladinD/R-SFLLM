@@ -169,7 +169,7 @@ def main(cfg):
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
         # Simulate communication each round
         if wireless is not None:
-            mses = wireless.run()
+            mses = wireless()
         # Client training loop
         if cfg.sfl.process == "sequential":
 
