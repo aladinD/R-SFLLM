@@ -1,4 +1,11 @@
-_target_: src.models.bert_module.CustomBertModel
+# @package _global_
+_target_: src.models.bert_module.BERTForTokenClassificationModule
+
+model:
+  config:
+    pretrained_model_name_or_path: "roberta-base" # from : {"bert-base-uncased", "roberta-base"}  
+    num_labels: 38 # specific to dataset {"conll2003": 10, "wnut_17": 14, "conll2012_ontonotesv5" : 38}
+  task: "ner"
 
 optimizer:
   _target_: torch.optim.Adam
@@ -12,11 +19,3 @@ scheduler:
   mode: min
   factor: 0.1
   patience: 10
-
-net:
-  _target_: src.models.components.simple_dense_net.SimpleDenseNet
-  input_size: 784
-  lin1_size: 64
-  lin2_size: 128
-  lin3_size: 64
-  output_size: 10

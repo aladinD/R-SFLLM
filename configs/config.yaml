@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - _self_
+  - model: bert.yaml
+  - datamodule: connl2003.yaml
+  - wireless: default.yaml
+  - paths: default.yaml
+  - sfl: default.yaml
+
+sfl:
+  num_clients: 3
+  num_rounds: 3
+  num_epochs: 1
+  process: "parallel" # from : {"parallel" or "sequential"}

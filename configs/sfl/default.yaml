@@ -1,0 +1,5 @@
+# @package _global_
+num_clients: 3
+num_rounds: 3
+num_epochs: 1
+process: "parallel" # from : {"parallel" or "sequential"}
