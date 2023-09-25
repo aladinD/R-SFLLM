@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Optional, Callable
+from typing import Any, Optional, Callable, Literal, Dict
 from isac.utils import db2lin
 from resilient_comms.metrics import rx_performance_metric
 from resilient_comms.sim_helpers import get_channels
@@ -10,6 +10,7 @@ from resilient_comms.jammer import opt_jammer
 class WirelessModule:
     def __init__(
             self,
+            scenario: Literal["no_jammer", "no_protection", "w_protection"] = "no_jammer",
             num_users: int = 3,
             num_tx: int = 8,
             num_rx: int = 16,
@@ -79,6 +80,7 @@ class WirelessModule:
         :param fc: Carrier frequency, defaults to 2.4e9
         :type fc: float, optional
         """        
+        self.scenario = scenario
         # general numerology
         self.num_users = num_users
         self.num_tx = num_tx
@@ -119,8 +121,9 @@ class WirelessModule:
         self.num_paths = num_paths
         self.fc = fc
 
-    def run(self) -> np.ndarray:
-        """Runs the wireless simulation and returns the communication MSEs for each user.
+    def run(self) -> Dict[str, np.ndarray]:
+        """Runs the wireless simulation and returns the communication MSEs for each user
+        in the protected, unprotected and jammer-less cases.
 
         :return: Communication MSEs as :class`np.ndarray` with shape (num_users,).
         :rtype: np.ndarray
@@ -156,11 +159,25 @@ class WirelessModule:
             receivers=receivers, precoders=precoders, powers=pows, allocs=allocs
         )[-1]
 
-        allocs_p, pows_p, precoders_p, receivers_p, mses_protection = \
-            self.run_algorithm(channels=channels, noise_covariance=noise_covariance)
+        allocs_p, pows_p, precoders_p, receivers_p, _ = \
+            self.run_algorithm(channels=channels, noise_covariance=cov_mat_aoa)
+        mses_protection = rx_performance_metric(
+            channels=channels, noise_covariance=cov_mat_opt, 
+            receivers=receivers_p, precoders=precoders_p, powers=pows_p, allocs=allocs_p
+        )[-1]
 
-        return np.ones((self.num_users)) * 0.1
+        return {"no_jammer": mses_no_jammer, "no_protection": mses_no_protection, "w_protection": mses_protection}
     
+    def __call__(self) -> list[float]:
+        """Wrapper around :class:`self.run()` which returns the value for the correct scenario.
+
+        :return: MSEs for the scenario defined by :class:`self.scenario` as a list of floats
+        with length :class:`self.num_users`.
+        :rtype: list[float]
+        """        
+        res = self.run()
+        return res[self.scenario].tolist()
+
     def run_algorithm(self, channels: np.ndarray, noise_covariance: np.ndarray, **kwargs):
         """Runs tx and receive strategies using the provided channels and noise covariance.
 
