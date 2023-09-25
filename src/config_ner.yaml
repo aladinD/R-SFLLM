@@ -1,7 +1,7 @@
 sfl:
   num_clients: 3
   num_rounds: 3
-  num_epochs: 3
+  num_epochs: 1
   process: "parallel" # from : {"parallel" or "sequential"}
 
 training:
@@ -15,6 +15,11 @@ training:
   client_log_path: ${training.base_dir}/${training.run_name}/logs/clients/
   master_log_path: ${training.base_dir}/${training.run_name}/logs/master/
   plot_path: ${training.base_dir}/${training.run_name}/plots/
+
+wireless:
+  _target_: models.components.wireless_module.WirelessModule
+  num_users: ${sfl.num_clients}
+  scenario: w_protection
 
 model:
   config:
@@ -38,9 +43,9 @@ data:
 trainer:
   # min_epochs: 1 # prevents early stopping
   max_epochs: ${sfl.num_epochs}
-
+  # fast_dev_run: True
   accelerator: cuda
-  # devices: 1
+  # devices: [7]
 
   # mixed precision for extra speed-up
   # precision: 16

@@ -4,11 +4,11 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.parsing import AttributeDict
 from torch.utils.data import DataLoader
 from src.models.bert_module import BERTForSequenceClassificationModule
-from src.sfl.client import Client
+from src.models.components.client import Client
 
 
 @pytest.fixture
-def client():
+def client() -> Client:
     """
     Fixture for creating a Client instance.
     """
@@ -28,7 +28,7 @@ def client():
     return Client(id=1, model=model, trainer=trainer, train_data=train_data, val_data=val_data)
 
 
-def test_client_initialization(client):
+def test_client_initialization(client: Client):
     """
     Test for the initialization of the Client class.
     """
@@ -39,7 +39,7 @@ def test_client_initialization(client):
     assert isinstance(client.val_data, DataLoader)
 
         
-def test_update_model(client):
+def test_update_model(client: Client):
     """
     Test for the update_model method of the Client class.
     """

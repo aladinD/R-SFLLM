@@ -7,15 +7,17 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 from joblib import Parallel, delayed
+from typing import Optional
 
-from sfl.aggregator import Aggregator
-from sfl.client import Client
-from src import utils
-from src.datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
-from src.models.bert_module import BERTForSequenceClassificationModule
-from src.models.roberta_module import RoBERTaForSequenceClassificationModule
-from src.utils import plotting
-from src.utils.utils import init_dir
+from models.components.aggregator import Aggregator
+from models.components.client import Client
+from models.components.wireless_module import WirelessModule
+import utils
+from datamodules.glue_datamodule import SST2DataModule, MRPCDataModule, QNLIDataModule, MNLIDataModule
+from models.bert_module import BERTForSequenceClassificationModule
+from models.roberta_module import RoBERTaForSequenceClassificationModule
+from utils import plotting
+from utils.utils import init_dir
 
 
 # Seeding
@@ -146,7 +148,7 @@ def main(cfg):
     log.info("INSTANTIATING CLIENTS")
     clients = []
     for i in range(cfg.sfl.num_clients):
-        client = Client(id=i,
+        client: Client = Client(id=i,
                         model=copy.deepcopy(model),
                         trainer=pl.Trainer(**cfg.trainer, devices=[i]),
                         train_data=train_dls[i],
@@ -157,17 +159,26 @@ def main(cfg):
     log.info("INSTANTIATING AGGREGATOR")
     aggregator = Aggregator(name="aggregator")
 
+    # Instantiate wireless module
+    wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
+    
     # SFL global round loop
     log.info("STARTING SFL TRAINING")
     for r in range(cfg.sfl.num_rounds):
         
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
-
+        # Simulate communication each round
+        if wireless is not None:
+            mses = wireless()
+            log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
         # Client training loop
         if cfg.sfl.process == "sequential":
 
             # Load client models
-            for client in clients:
+            for i, client in enumerate(clients):
+                # Update communication MSEs if needed
+                if wireless is not None:
+                    client.model.add_noise = mses[i]
                 if r!= 0:
                     client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
@@ -182,7 +193,10 @@ def main(cfg):
         elif cfg.sfl.process == "parallel":
 
             # Load client models
-            for client in clients:
+            for i, client in enumerate(clients):
+                # Update communication MSEs if needed
+                if wireless is not None:
+                    client.add_noise = mses[i]
                 if r!= 0:
                     client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:

@@ -152,5 +152,7 @@ dmypy.json
 configs/local/default.yaml
 data/
 logs/
+outputs/
+results/
 .env
 .autoenv

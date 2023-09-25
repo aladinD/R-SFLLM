@@ -1,5 +1,6 @@
 import pytest
 import torch
+from copy import deepcopy
 from src.models.roberta_module import RoBERTaForSequenceClassificationModule, RoBERTaForTokenClassificationModule
 from src.datamodules.glue_datamodule import SST2DataModule
 from src.datamodules.ner_datamodule import CoNLL2003DataModule
@@ -94,6 +95,24 @@ def test_forward(model, test_batch):
     # Check for correct loss type and shape
     assert isinstance(outputs["loss"], torch.Tensor) 
     assert outputs["loss"].shape == ()  
+
+
+def test_forward_w_emb_noise(model, test_batch):
+    """
+    Test forward pass with embedding noise.
+    """
+    input_ids, attention_mask, labels = test_batch
+    
+    # Forward pass
+    _ = model(input_ids, attention_mask, labels=labels)
+    emb_clean = deepcopy(model.embeddings.word_embeddings.weight.data)
+
+    # Forward pass with added noise for embeddings
+    model.add_noise = 100.
+    _ = model(input_ids, attention_mask, labels=labels)
+    emb_noisy = model.embeddings.word_embeddings.weight.data
+
+    assert not torch.allclose(emb_clean, emb_noisy)
 
 
 def test_training_with_trainer(model, datamodule):
