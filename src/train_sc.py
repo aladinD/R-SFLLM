@@ -178,7 +178,7 @@ def main(cfg):
             for i, client in enumerate(clients):
                 # Update communication MSEs if needed
                 if wireless is not None:
-                    client.add_noise = mses[i]
+                    client.model.add_noise = mses[i]
                 if r!= 0:
                     client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
