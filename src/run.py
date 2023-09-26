@@ -1,12 +1,11 @@
 import copy
 import random
 from typing import Optional, Union
-
+from tqdm import tqdm
 import hydra
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.csv_logs import CSVLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import LightningDataModule
 import torch
 from joblib import Parallel, delayed
@@ -126,20 +125,22 @@ def main(cfg):
     model.add_noise = False
 
     # Instantiate base trainer and csv logger
-    log.info(f"Instantiating Clients with Base Trainer: {cfg.trainer._target_}")
-    base_trainer_cfg = copy.deepcopy(cfg.trainer)
+    log.info(f"Instantiating Clients")
     # Instantiate clients
     clients = []
-    for i in range(cfg.sfl.num_clients):
-        trainer = hydra.utils.instantiate(base_trainer_cfg, log_every_n_steps=1)
+    client_configs = []
+    for i in tqdm(range(cfg.sfl.num_clients)):
         client = Client(
             id=i,
             model=copy.deepcopy(model),
-            trainer=trainer,
+            trainer=None,
             train_data=train_dls[i],
             val_data=val_dls[i]
         )
         clients.append(client)
+        conf_client = copy.deepcopy(cfg)
+        OmegaConf.resolve(conf_client)
+        client_configs.append(conf_client)
 
     # Instantiate aggregator
     log.info("INSTANTIATING AGGREGATOR")
@@ -170,7 +171,7 @@ def main(cfg):
                     pass
 
                 # Train client models sequentially on GPU:0
-                train_single_client(client=client, cfg=cfg, r=r, parallel=False)
+                train_single_client(client=client, cfg=client_configs[i], r=r, parallel=False)
                 # logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
                 # client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
                 # client.trainer.fit(client.model, client.train_data, client.val_data)
@@ -188,52 +189,54 @@ def main(cfg):
                     pass
 
             # Train client models in parallel
-            Parallel(n_jobs=-1)(delayed(train_single_client)(client, cfg, r, True) for client in clients)
+            Parallel(n_jobs=-1)(delayed(train_single_client)(client, conf, r, True) for (conf, client) in zip(client_configs, clients))
 
         else:
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
 
         log.info("ALL CLIENTS TRAINED")
 
-    #     # Reload all clients to ensure proper model states after sequential/parallel training
-    #     for client in clients:
-    #         client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+        # Reload all clients to ensure proper model states after sequential/parallel training
+        for client in clients:
+            client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
 
-    #     # Aggregate client models
-    #     attentions = aggregator.accumulate_attentions([client.model for client in clients])
-    #     heads = aggregator.accumulate_heads([client.model for client in clients])
-    #     embeddings = aggregator.accumulate_embeddings([client.model for client in clients])
+        # Aggregate client models
+        attentions = aggregator.accumulate_attentions([client.model for client in clients])
+        heads = aggregator.accumulate_heads([client.model for client in clients])
+        embeddings = aggregator.accumulate_embeddings([client.model for client in clients])
 
-    #     aggregated_attentions = aggregator.aggregate(attentions)
-    #     aggregated_heads = aggregator.aggregate(heads)
-    #     aggregated_embeddings = aggregator.aggregate(embeddings)
+        aggregated_attentions = aggregator.aggregate(attentions)
+        aggregated_heads = aggregator.aggregate(heads)
+        aggregated_embeddings = aggregator.aggregate(embeddings)
 
-    #     # Model update & save
-    #     for client in clients:
-    #         client.update_model(aggregated_attentions)
-    #         client.update_model(aggregated_heads)
-    #         client.update_model(aggregated_embeddings)
-    #         torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
+        # Model update & save
+        for client in clients:
+            client.update_model(aggregated_attentions)
+            client.update_model(aggregated_heads)
+            client.update_model(aggregated_embeddings)
+            torch.save(client.model.state_dict(), cfg.paths.client_ckpts_path + f"client_{client.id}.pt")
 
-    #     log.info("ALL CLIENTS AGGREGATED")
+        log.info("ALL CLIENTS AGGREGATED")
 
-    #     # Save master model
-    #     torch.save(clients[-1].model.state_dict(), cfg.training.master_ckpts_path + f"master_round_{r}.pt")
-    #     log.info("MASTER MODEL SAVED")
+        # Save master model
+        torch.save(clients[-1].model.state_dict(), cfg.paths.master_ckpts_path + f"master_round_{r}.pt")
+        log.info("MASTER MODEL SAVED")
 
-    #     # Evaluate master model
-    #     log.info("EVALUATING MASTER MODEL")
-    #     evaluate_master_model(model, cfg, r)
+        # Evaluate master model
+        log.info("EVALUATING MASTER MODEL")
+        evaluate_master_model(model, cfg, r)
 
-    #     # End round and save metrics plot
-    #     if r == cfg.sfl.num_rounds - 1:
-    #         log.info("ALL ROUNDS COMPLETED")
-    #         log.info("PLOTTING & SAVING METRICS")
-    #         plotting.plot_metrics(cfg, 
-    #                               plot_name="result.png",
-    #                               save_dir=cfg.training.plot_path, 
-    #                               logs_path=cfg.training.log_path, 
-    #                               plot_train_metrics=False)
+        # End round and save metrics plot
+        if r == cfg.sfl.num_rounds - 1:
+            log.info("ALL ROUNDS COMPLETED")
+            log.info("PLOTTING & SAVING METRICS")
+            plotting.plot_metrics(
+                cfg, 
+                plot_name="result.png",
+                save_dir=cfg.paths.plot_path, 
+                logs_path=cfg.paths.log_path, 
+                plot_train_metrics=False
+            )
 
 
 if __name__ == "__main__":
