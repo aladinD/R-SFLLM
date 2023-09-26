@@ -18,7 +18,7 @@ from models.bert_module import BERTForTokenClassificationModule
 from models.roberta_module import RoBERTaForTokenClassificationModule
 from utils import plotting
 from utils.utils import init_dir
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 import rootutils
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -41,6 +41,7 @@ def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool 
         cfg.trainer.devices = [client.id]
     else:
         cfg.trainer.devices = [0]
+        
     logger: CSVLogger = pl.loggers.CSVLogger(save_dir=cfg.paths.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
     trainer: pl.Trainer = hydra.utils.instantiate(cfg.trainer, logger=logger, log_every_n_steps=1)  
     client.trainer = trainer
@@ -94,11 +95,19 @@ def evaluate_master_model(model, cfg: DictConfig, r: int):
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="config.yaml")
 def main(cfg):
+
     # Logger
     log = utils.get_pylogger(__name__)
+
     # Initialize directory
     log.info(f"Initializing dirs in {cfg.paths.output_dir}")
     init_dir(cfg)
+
+    # Get num_labels value
+    with open_dict(cfg.datamodule):
+        num_labels = cfg.datamodule.pop('num_labels')
+    cfg.model.config.num_labels = num_labels
+
     # Instantiate model first, since model contains information needed for the dataloaders
     log.info(f"Instantiating model: {cfg.model._target_}")
     model_class: Union[BERTForTokenClassificationModule, RoBERTaForTokenClassificationModule] = hydra.utils.get_class(cfg.model._target_)
