@@ -3,7 +3,7 @@ _target_: pytorch_lightning.Trainer
 default_root_dir: ${paths.output_dir}
 
 min_epochs: 1 # prevents early stopping
-max_epochs: 10
+max_epochs: null # we overwrite this in src.py
 
 accelerator: cpu
 devices: 1
@@ -11,9 +11,8 @@ devices: 1
 # mixed precision for extra speed-up
 # precision: 16
 
-# log_every_n_step: 1
-
-fast_dev_run: true
+# do a debug run. only use if debug from cli does not work.
+fast_dev_run: false
 
 # disable checkpointing since we are using custom checkpoints 
 # for client and server

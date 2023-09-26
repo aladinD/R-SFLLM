@@ -94,7 +94,6 @@ def evaluate_master_model(model, cfg: DictConfig, r: int):
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="config.yaml")
 def main(cfg):
-    
     # Logger
     log = utils.get_pylogger(__name__)
     # Initialize directory
@@ -124,7 +123,11 @@ def main(cfg):
     model.init_metrics()
     model.add_noise = False
 
-    # Instantiate base trainer and csv logger
+    # Set the max epochs for training according to sfl!
+    cfg.trainer.max_epochs = cfg.sfl.num_epochs
+
+    # Pretty print stuff for debug and save config to file
+    utils.extras(cfg=cfg)
     log.info(f"Instantiating Clients")
     # Instantiate clients
     clients = []
@@ -158,41 +161,24 @@ def main(cfg):
             mses = wireless()
             log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
         # Client training loop
+        # Load client models
+        for i, client in enumerate(clients):
+            # Update communication MSEs if needed
+            if wireless is not None:
+                client.model.add_noise = mses[i]
+            if r!= 0:
+                client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
+            else:
+                pass
         if cfg.sfl.process == "sequential":
-            
-            # Load client models
+            # Train client models sequentially on GPU:0
             for i, client in enumerate(clients):
-                # Update communication MSEs if needed
-                if wireless is not None:
-                    client.model.add_noise = mses[i]
-                if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
-                else:
-                    pass
-
-                # Train client models sequentially on GPU:0
                 train_single_client(client=client, cfg=client_configs[i], r=r, parallel=False)
-                # logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
-                # client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
-                # client.trainer.fit(client.model, client.train_data, client.val_data)
-                # torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
-                
         elif cfg.sfl.process == "parallel":
-            # Load client models
-            for client in clients:
-                # Update communication MSEs if needed
-                if wireless is not None:
-                    client.model.add_noise = mses[i]
-                if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
-                else:
-                    pass
-
             # Train client models in parallel
             Parallel(n_jobs=-1)(delayed(train_single_client)(client, conf, r, True) for (conf, client) in zip(client_configs, clients))
-
         else:
-            log.error("INVALID PROCESS TYPE from {parallel, sequential}")
+            raise TypeError("INVALID PROCESS TYPE from {parallel, sequential}")
 
         log.info("ALL CLIENTS TRAINED")
 
