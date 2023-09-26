@@ -3,7 +3,7 @@ _target_: datamodules.ner_datamodule.WNUT17DataModule
 ner_dataset: wnut_17
 batch_size: 64
 num_workers: 1
-
+num_labels: 14
 # we set following parameters to null because they will be overriden in the 
 # main script, and because it is impossible to interpolate values from the 
 # defaults list. 

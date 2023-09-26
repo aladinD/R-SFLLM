@@ -142,7 +142,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
         # Add noise to the input embeddings
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
         if self.add_noise is not None:
-            print("*** ADDING NOISE ***")
             noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:
@@ -437,7 +436,6 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
         # Add noise to the input embeddings
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
         if self.add_noise is not None:
-            print("*** ADDING NOISE ***")
             noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:
@@ -773,7 +771,6 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
         # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
         # if self.add_noise:
         if self.add_noise is not None:
-            print("*** ADDING NOISE ***")
             noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
             self.embeddings.word_embeddings.weight.data += noise
         else:
