@@ -3,7 +3,7 @@ _target_: models.bert_module.RoBERTaForSequenceClassificationModule
 
 config:
   pretrained_model_name_or_path: "roberta-base" 
-  num_labels: 38 # specific to dataset {"conll2003": 10, "wnut_17": 14, "conll2012_ontonotesv5" : 38}
+  num_labels: 2 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
 
 # adamw and scheduler args
 lr: 1e-5
