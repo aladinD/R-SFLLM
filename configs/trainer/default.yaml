@@ -11,6 +11,14 @@ devices: 1
 # mixed precision for extra speed-up
 # precision: 16
 
+# log_every_n_step: 1
+
+fast_dev_run: true
+
+# disable checkpointing since we are using custom checkpoints 
+# for client and server
+enable_checkpointing: False
+
 # perform a validation loop every N training epochs
 check_val_every_n_epoch: 1
 

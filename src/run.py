@@ -5,27 +5,24 @@ from typing import Optional, Union
 import hydra
 import numpy as np
 import pytorch_lightning as pl
+from pytorch_lightning.loggers.csv_logs import CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import LightningDataModule
-from lightning.pytorch.accelerators import find_usable_cuda_devices
 import torch
 from joblib import Parallel, delayed
 
-from transformers import BertPreTrainedModel, RobertaPreTrainedModel
 from models.components.aggregator import Aggregator
 from models.components.client import Client
 from models.components.wireless_module import WirelessModule
 import utils
-from datamodules.ner_datamodule import CoNLL2003DataModule, WNUT17DataModule, OntoNotesDataModule
 from models.bert_module import BERTForTokenClassificationModule
 from models.roberta_module import RoBERTaForTokenClassificationModule
 from utils import plotting
 from utils.utils import init_dir
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig
 import rootutils
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
-
 
 # Seeding
 seed = 42
@@ -37,20 +34,14 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-
-
-def parallel_train(client, cfg, r):
+def train_single_client(client: Client, cfg: DictConfig, r: int):
     """
     Train and save a client model seperately in a parallel job.
     """
-    logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
-
-    # Disable checkpoints logging 
-    checkpoint_callback = ModelCheckpoint(save_top_k=0, every_n_epochs=int(1e9))
-    
-    client.trainer = pl.Trainer(**cfg.trainer, devices=[client.id], logger=logger, log_every_n_steps=1, callbacks=[checkpoint_callback])
+    logger: CSVLogger = pl.loggers.CSVLogger(save_dir=cfg.paths.output_dir + cfg.paths.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
+    client.trainer.logger = logger
     client.trainer.fit(client.model, client.train_data, client.val_data)
-    torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
+    torch.save(client.model.state_dict(), cfg.paths.output_dir + cfg.paths.client_ckpts_path + f"client_{client.id}.pt")
 
 
 def get_dls(cfg: DictConfig, master: bool = False): 
@@ -70,7 +61,7 @@ def get_dls(cfg: DictConfig, master: bool = False):
     return datamodule.train_dataloader(), datamodule.val_dataloader()
 
 
-def evaluate_master_model(model, cfg: DictConfig, r):
+def evaluate_master_model(model, cfg: DictConfig, r: int):
     """
     Evaluates the master model on the complete train and validation dataset.
     """
@@ -82,18 +73,18 @@ def evaluate_master_model(model, cfg: DictConfig, r):
                     train_data=master_train_dl,
                     val_data=master_val_dl)
     
-    master.model.load_state_dict(torch.load(cfg.training.master_ckpts_path + f"master_round_{r}.pt"))
+    master.model.load_state_dict(torch.load(cfg.paths.output_dir + cfg.paths.master_ckpts_path + f"master_round_{r}.pt"))
     
-    eval_config = dict(cfg.trainer)
-    eval_config['devices'] = 1
+    eval_config = copy.deepcopy(cfg.trainer)
+    eval_config.devices = 1
 
-    train_logger = pl.loggers.CSVLogger(save_dir=cfg.training.master_log_path, name="train", version=f"round_{r}")
-    validation_logger = pl.loggers.CSVLogger(save_dir=cfg.training.master_log_path, name="validation", version=f"round_{r}")
+    train_logger = pl.loggers.CSVLogger(save_dir=cfg.paths.master_log_path, name="train", version=f"round_{r}")
+    validation_logger = pl.loggers.CSVLogger(save_dir=cfg.paths.master_log_path, name="validation", version=f"round_{r}")
 
-    train_trainer = pl.Trainer(**eval_config, logger=train_logger, log_every_n_steps=1)
+    train_trainer: pl.Trainer = hydra.utils.instantiate(eval_config, logger=train_logger)
     train_trainer.test(master.model, master.train_data)
 
-    validation_trainer = pl.Trainer(**eval_config, logger=validation_logger, log_every_n_steps=1)
+    validation_trainer: pl.Trainer = hydra.utils.instantiate(eval_config, logger=validation_logger)
     validation_trainer.test(master.model, master.val_data)
 
 
@@ -129,20 +120,22 @@ def main(cfg):
     model.init_metrics()
     model.add_noise = False
 
-    # Instantiate base trainer
+    # Instantiate base trainer and csv logger
     log.info(f"Instantiating Clients with Base Trainer: {cfg.trainer._target_}")
     base_trainer_cfg = copy.deepcopy(cfg.trainer)
     # Instantiate clients
     clients = []
     
     for i in range(cfg.sfl.num_clients):
-        trainer.devices = [i]
-        trainer = hydra.utils.instantiate(base_trainer_cfg)
-        client = Client(id=i,
-                        model=copy.deepcopy(model),
-                        trainer=trainer,
-                        train_data=train_dls[i],
-                        val_data=val_dls[i])
+        base_trainer_cfg.devices = [i]
+        trainer = hydra.utils.instantiate(base_trainer_cfg, log_every_n_steps=1)
+        client = Client(
+            id=i,
+            model=copy.deepcopy(model),
+            trainer=trainer,
+            train_data=train_dls[i],
+            val_data=val_dls[i]
+        )
         clients.append(client)
 
     # Instantiate aggregator
@@ -152,52 +145,53 @@ def main(cfg):
     # Instantiate wireless module
     wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
     
-    # # SFL global round loop
-    # log.info("STARTING SFL TRAINING")
-    # for r in range(cfg.sfl.num_rounds):
-        
-    #     log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
-    #     # Simulate communication each round
-    #     if wireless is not None:
-    #         mses = wireless()
-    #         log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
-    #     # Client training loop
-    #     if cfg.sfl.process == "sequential":
+    # SFL global round loop
+    log.info("STARTING SFL TRAINING")
+    for r in range(cfg.sfl.num_rounds):
+        log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
+        # Simulate communication each round
+        if wireless is not None:
+            mses = wireless()
+            log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
+        # Client training loop
+        if cfg.sfl.process == "sequential":
             
-    #         # Load client models
-    #         for i, client in enumerate(clients):
-    #             # Update communication MSEs if needed
-    #             if wireless is not None:
-    #                 client.model.add_noise = mses[i]
-    #             if r!= 0:
-    #                 client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
-    #             else:
-    #                 pass
+            # Load client models
+            for i, client in enumerate(clients):
+                # Update communication MSEs if needed
+                if wireless is not None:
+                    client.model.add_noise = mses[i]
+                if r!= 0:
+                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+                else:
+                    pass
 
-    #             # Train client models sequentially on GPU:0
-    #             logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
-    #             client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
-    #             client.trainer.fit(client.model, client.train_data, client.val_data)
-    #             torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
+                # Train client models sequentially on GPU:0
+                client.trainer.devices = [0]
+                train_single_client(client=client, cfg=cfg, r=r)
+                # logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
+                # client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
+                # client.trainer.fit(client.model, client.train_data, client.val_data)
+                # torch.save(client.model.state_dict(), cfg.training.clients_ckpts_path + f"client_{client.id}.pt")
                 
-    #     elif cfg.sfl.process == "parallel":
-    #         # Load client models
-    #         for client in clients:
-    #             # Update communication MSEs if needed
-    #             if wireless is not None:
-    #                 client.add_noise = mses[i]
-    #             if r!= 0:
-    #                 client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
-    #             else:
-    #                 pass
+        elif cfg.sfl.process == "parallel":
+            # Load client models
+            for client in clients:
+                # Update communication MSEs if needed
+                if wireless is not None:
+                    client.model.add_noise = mses[i]
+                if r!= 0:
+                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+                else:
+                    pass
 
-    #         # Train client models in parallel
-    #         Parallel(n_jobs=-1)(delayed(parallel_train)(client, cfg, r) for client in clients)
+            # Train client models in parallel
+            Parallel(n_jobs=-1)(delayed(train_single_client)(client, cfg, r) for client in clients)
 
-    #     else:
-    #         log.error("INVALID PROCESS TYPE from {parallel, sequential}")
+        else:
+            log.error("INVALID PROCESS TYPE from {parallel, sequential}")
 
-    #     log.info("ALL CLIENTS TRAINED")
+        log.info("ALL CLIENTS TRAINED")
 
     #     # Reload all clients to ensure proper model states after sequential/parallel training
     #     for client in clients:

@@ -8,5 +8,6 @@ defaults:
   - datamodule: conll2003.yaml # datamodule
   - model: bert_token_classification.yaml # model being trained
   - trainer: gpu.yaml
+  - debug: null
 
 task_name: ner
