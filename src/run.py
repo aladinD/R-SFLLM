@@ -198,7 +198,7 @@ def main(cfg):
 
         # Reload all clients to ensure proper model states after sequential/parallel training
         for client in clients:
-            client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+            client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
 
         # Aggregate client models
         attentions = aggregator.accumulate_attentions([client.model for client in clients])

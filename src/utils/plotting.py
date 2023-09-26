@@ -125,7 +125,7 @@ def plot_metrics(cfg: DictConfig,
     Plots the training and validation metrics for a specified client and the master model.
     """
     # Hyperparameters
-    task = cfg.model.task
+    task = cfg.task_name
     main_title_fontsize = 16
     subtitle_fontsize = 10
 
