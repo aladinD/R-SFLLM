@@ -1,15 +1,17 @@
 import copy
 import random
-from typing import Optional
+from typing import Optional, Union
 
 import hydra
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning import LightningDataModule
+from lightning.pytorch.accelerators import find_usable_cuda_devices
 import torch
 from joblib import Parallel, delayed
 
+from transformers import BertPreTrainedModel, RobertaPreTrainedModel
 from models.components.aggregator import Aggregator
 from models.components.client import Client
 from models.components.wireless_module import WirelessModule
@@ -19,7 +21,7 @@ from models.bert_module import BERTForTokenClassificationModule
 from models.roberta_module import RoBERTaForTokenClassificationModule
 from utils import plotting
 from utils.utils import init_dir
-
+from omegaconf import OmegaConf, DictConfig
 import rootutils
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -51,48 +53,24 @@ def parallel_train(client, cfg, r):
     torch.save(client.model.state_dict(), cfg.training.client_ckpts_path + f"client_{client.id}.pt")
 
 
-def get_dls(cfg, master: bool = False): 
+def get_dls(cfg: DictConfig, master: bool = False): 
     """
     Loads the train and val dataloaders for each clients including appropriate splitting.
     Loads the complete train and val dataloaders for the master.
     """
     if master is False:
         datamodule: LightningDataModule = hydra.utils.instantiate(cfg.datamodule)
-        # if cfg.data.ner_dataset == "conll2003":
-        #     datamodule = CoNLL2003DataModule(**cfg.data)
-        # elif cfg.data.ner_dataset == "wnut_17":
-        #     datamodule = WNUT17DataModule(**cfg.data)
-        # elif cfg.data.ner_dataset == "conll2012_ontonotesv5":
-        #     datamodule = OntoNotesDataModule(**cfg.data)
-        # else:
-        #     raise ValueError("UNSUPPORTED GLUE OR OTHER DATASET")
-
-        # datamodule.prepare_data()
-        # datamodule.setup()
-        # return datamodule.train_dataloader(), datamodule.val_dataloader()
-    
     else:
         data_config = cfg.datamodule # maybe deepcopy
         data_config.num_splits = None
         datamodule: LightningDataModule = hydra.utils.instantiate(data_config)
-        # data_config = dict(cfg.data)
-        # data_config['num_splits'] = None
-
-        # if cfg.data.ner_dataset == "conll2003":
-        #     datamodule = CoNLL2003DataModule(**data_config)
-        # elif cfg.data.ner_dataset == "wnut_17":
-        #     datamodule = WNUT17DataModule(**data_config)
-        # elif cfg.data.ner_dataset == "conll2012_ontonotesv5":
-        #     datamodule = OntoNotesDataModule(**data_config)
-        # else:
-        #     raise ValueError("UNSUPPORTED GLUE OR OTHER DATASET")
 
     datamodule.prepare_data()
     datamodule.setup()
     return datamodule.train_dataloader(), datamodule.val_dataloader()
 
 
-def evaluate_master_model(model, cfg, r):
+def evaluate_master_model(model, cfg: DictConfig, r):
     """
     Evaluates the master model on the complete train and validation dataset.
     """
@@ -124,53 +102,56 @@ def main(cfg):
     
     # Logger
     log = utils.get_pylogger(__name__)
-    print(cfg)
     # Initialize directory
-    log.info("INITIALIZING DIRECTORY")
+    log.info(f"Initializing dirs in {cfg.paths.output_dir}")
     init_dir(cfg)
+    # Instantiate model first, since model contains information needed for the dataloaders
+    log.info(f"Instantiating model: {cfg.model._target_}")
+    model_class: Union[BERTForTokenClassificationModule, RoBERTaForTokenClassificationModule] = hydra.utils.get_class(cfg.model._target_)
+    model_cfg: DictConfig = cfg.model.config
+    model: Union[BERTForTokenClassificationModule, RoBERTaForTokenClassificationModule] = model_class.from_pretrained(**model_cfg)
 
     # Get dataloaders
-    log.info("LOADING DATA")
+    log.info(f"Instantiating datamodule: {cfg.datamodule._target_}")
+    cfg.datamodule.num_splits = cfg.sfl.num_clients
+    cfg.datamodule.model_type = model_cfg.pretrained_model_name_or_path
     train_dls, val_dls = get_dls(cfg, master=False)
     print("LNE : ", len(train_dls[1]))
 
-    # # Instantiate model
-    # log.info("INSTANTIATING MODEL")
-    # model_target = cfg.model._target_
-    # model = hydra.utils.instantiate(model_target, _partial_=True).from_pretrained(**cfg.model.config)
-    # # if cfg.model.config.pretrained_model_name_or_path == "bert-base-uncased":
-    # #     model = BERTForTokenClassificationModule.from_pretrained(**cfg.model.config)
-    # # elif cfg.model.config.pretrained_model_name_or_path == "roberta-base":
-    # #     model = RoBERTaForTokenClassificationModule.from_pretrained(**cfg.model.config)
-    # # else:
-    # #     log.error("INVALID MODEL TYPE FROM : {bert-base-uncased, roberta-base}")
+    # We defer setting additional model attributes, since LitModule does not allow for some reason 
+    # to initialize this in the constructor and there is imo 
+    # some very nasty coupling between model and datamodule which prevents this.
+    model.lr_val = cfg.model.lr
+    model.eps_val = cfg.model.eps
+    model.warmup = cfg.model.warmup
+    model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
+    model.num_classes = model_cfg.num_labels
+    model.init_metrics()
+    model.add_noise = False
 
-    # # # Set additional model configurations
-    # # model.lr_val = cfg.optimizer.lr
-    # # model.eps_val = cfg.optimizer.eps
-    # # model.warmup = cfg.optimizer.warmup
-    # # model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
-    # # model.num_classes = cfg.model.config.num_labels
-    # # model.init_metrics()
-    # # model.add_noise = False
+    # Instantiate base trainer
+    log.info(f"Instantiating Clients with Base Trainer: {cfg.trainer._target_}")
+    base_trainer_cfg = copy.deepcopy(cfg.trainer)
+    # Instantiate clients
+    clients = []
+    
+    for i in range(cfg.sfl.num_clients):
+        trainer.devices = [i]
+        trainer = hydra.utils.instantiate(base_trainer_cfg)
+        client = Client(id=i,
+                        model=copy.deepcopy(model),
+                        trainer=trainer,
+                        train_data=train_dls[i],
+                        val_data=val_dls[i])
+        clients.append(client)
 
-    # # Instantiate clients
-    # log.info("INSTANTIATING CLIENTS")
-    # clients = []
-    # for i in range(cfg.sfl.num_clients):
-    #     client = Client(id=i,
-    #                     model=copy.deepcopy(model),
-    #                     trainer=pl.Trainer(**cfg.trainer, devices=[i]),
-    #                     train_data=train_dls[i],
-    #                     val_data=val_dls[i])
-    #     clients.append(client)
+    # Instantiate aggregator
+    log.info("INSTANTIATING AGGREGATOR")
+    aggregator = Aggregator(name="aggregator")
 
-    # # Instantiate aggregator
-    # log.info("INSTANTIATING AGGREGATOR")
-    # aggregator = Aggregator(name="aggregator")
-
-    # # Instantiate wireless module
-    # wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
+    # Instantiate wireless module
+    wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
+    
     # # SFL global round loop
     # log.info("STARTING SFL TRAINING")
     # for r in range(cfg.sfl.num_rounds):

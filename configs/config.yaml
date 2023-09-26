@@ -1,12 +1,12 @@
 # @package _global_
 defaults:
   - _self_
-  - datamodule: conll2003.yaml # datamodule
+  - sfl: default.yaml # split federated learning config
   - wireless: no_jammer.yaml # wireless specification
   - paths: default.yaml # paths to different stuff like datasets, logs, project root, etc.
   - hydra: default.yaml # additional hydra options
-
-sfl: default.yaml # split federated learning config
-model: bert_model.yaml # model being trained
+  - datamodule: conll2003.yaml # datamodule
+  - model: bert_token_classification.yaml # model being trained
+  - trainer: gpu.yaml
 
 task_name: ner

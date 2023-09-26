@@ -2,6 +2,10 @@ _target_: datamodules.ner_datamodule.CoNLL2003DataModule
 ner_dataset: conll2003 # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
 batch_size: 64
 num_workers: 1
-model_type: ${model.config.pretrained_model_name_or_path}
-num_splits: ${sfl.num_clients}
+# we set following parameters to null because they will be overriden in the 
+# main script, and because it is impossible to interpolate values from the 
+# defaults list. 
+model_type: null 
+num_splits: null # we set these to null 
+# ${sfl.num_clients}
 truncate: 100
