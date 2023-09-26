@@ -149,7 +149,7 @@ def plot_metrics(cfg: DictConfig,
         # Labels and titles
         plt.ylabel('Accuracy')
         main_title = 'Accuracies across Global Rounds and Epochs'
-        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.data.glue_dataset}, Number of Clients: {cfg.sfl.num_clients}"
+        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.datamodule.glue_dataset}, Number of Clients: {cfg.sfl.num_clients}"
         
         plt.suptitle(main_title, fontsize=main_title_fontsize)  
         plt.title(subtitle, fontsize=subtitle_fontsize) 
