@@ -1,6 +1,7 @@
 # Datamodule config for SST2 dataset
 _target_: datamodules.glue_datamodule.SST2DataModule
 glue_dataset: sst2
+num_labels: 2
 batch_size: 128
 num_workers: 1
 
@@ -11,4 +12,4 @@ model_type: null
 num_splits: null
 
 # Truncation of the dataset for test purposes (default = null)
-truncate: null
+truncate: 100

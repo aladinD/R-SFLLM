@@ -3,7 +3,7 @@ _target_: models.roberta_module.RoBERTaForSequenceClassificationModule
 
 config:
   pretrained_model_name_or_path: "roberta-base" 
-  num_labels: 2 # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
+  num_labels: null # specific to dataset, eg. 2 for {"sst2", "mrpc", "qnli"}, 3 for {"mnli"}
 
 # adamw and scheduler args
 lr: 1e-5

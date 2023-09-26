@@ -5,18 +5,18 @@ defaults:
   - wireless: no_jammer.yaml # wireless specification
   - paths: default.yaml # paths to different stuff like datasets, logs, project root, etc.
   - hydra: default.yaml # additional hydra options
-  - datamodule: conll2003.yaml # datamodule
-  - model: bert_for_token_classification.yaml # model being trained
+  - datamodule: sst2.yaml # datamodule
+  - model: bert_for_sequence_classification.yaml # model being trained
   - trainer: gpu.yaml # trainer for all models. note we only change the device during training.
   - debug: null # debug mode
   - extras: default.yaml # extra things which happen before tasks, such as pretty printing, tags, and
   # saving config to logs
 
-task_name: ner
+task_name: sc
 
 # tags to help you identify your experiments
 # you can overwrite this in experiment configs
 # overwrite from command line with `python train.py tags="[first_tag, second_tag]"`
 # appending lists from command line is currently not supported :(
 # https://github.com/facebookresearch/hydra/issues/1547
-tags: ["ner", "no_jammer"]
+tags: ["sc", "no_jammer"]

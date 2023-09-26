@@ -1,6 +1,7 @@
 # Datamodule config for WNUT_17 dataset
 _target_: datamodules.ner_datamodule.WNUT17DataModule
 ner_dataset: wnut_17
+num_labels: 14
 batch_size: 64
 num_workers: 1
 num_labels: 14

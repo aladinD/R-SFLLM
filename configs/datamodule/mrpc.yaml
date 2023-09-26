@@ -1,6 +1,7 @@
 # Datamodule config for MRPC dataset
 _target_: datamodules.glue_datamodule.MRPCDataModule
 glue_dataset: mrpc
+num_labels: 2
 batch_size: 128
 num_workers: 1
 

@@ -1,6 +1,7 @@
 # Datamodule config for MNLI dataset
 _target_: datamodules.glue_datamodule.MNLIDataModule
 glue_dataset: mnli
+num_labels: 3 
 batch_size: 128
 num_workers: 1
 

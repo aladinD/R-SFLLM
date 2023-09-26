@@ -1,6 +1,7 @@
 # Datamodule config for CONLL2003 dataset
 _target_: datamodules.ner_datamodule.CoNLL2003DataModule
 ner_dataset: conll2003
+num_labels: 10
 batch_size: 64
 num_workers: 1
 num_labels: 10
@@ -11,4 +12,4 @@ model_type: null
 num_splits: null
 
 # Truncation of the dataset for test purposes (default = null)
-truncate: null
+truncate: 100
