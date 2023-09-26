@@ -1,10 +1,9 @@
-
-_target_: models.bert_module.BERTForTokenClassificationModule
+# RoBERTaForTokenClassification model config
+_target_: models.bert_module.RoBERTaForTokenClassificationModule
 
 config:
-  pretrained_model_name_or_path: "bert-base-uncased" # from : {"bert-base-uncased", "roberta-base"}  
+  pretrained_model_name_or_path: "roberta-base" 
   num_labels: 38 # specific to dataset {"conll2003": 10, "wnut_17": 14, "conll2012_ontonotesv5" : 38}
-  # task: "ner"
 
 # adamw and scheduler args
 lr: 1e-5

@@ -1,13 +1,13 @@
-# Datamodule config for CONLL2003 dataset
-_target_: datamodules.ner_datamodule.CoNLL2003DataModule
-ner_dataset: conll2003
-batch_size: 64
+# Datamodule config for SST2 dataset
+_target_: datamodules.glue_datamodule.SST2DataModule
+glue_dataset: sst2
+batch_size: 128
 num_workers: 1
 
 # we set following parameters to null because they will be overriden in the 
 # main script, and because it is impossible to interpolate values from the 
 # defaults list. 
-model_type: null 
+model_type: null
 num_splits: null
 
 # Truncation of the dataset for test purposes (default = null)

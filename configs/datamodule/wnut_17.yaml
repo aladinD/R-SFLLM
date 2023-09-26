@@ -1,7 +1,14 @@
+# Datamodule config for WNUT_17 dataset
 _target_: datamodules.ner_datamodule.WNUT17DataModule
-ner_dataset: wnut_17 # from : {"conll2003", "wnut_17", "conll2012_ontonotesv5"} 
+ner_dataset: wnut_17
 batch_size: 64
 num_workers: 1
-model_type: ${model.config.pretrained_model_name_or_path}
-num_splits: ${sfl.num_clients}
-truncate: 100
+
+# we set following parameters to null because they will be overriden in the 
+# main script, and because it is impossible to interpolate values from the 
+# defaults list. 
+model_type: null
+num_splits: null
+
+# Truncation of the dataset for test purposes (default = null)
+truncate: null
