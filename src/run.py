@@ -19,7 +19,7 @@ from models.bert_module import BERTForTokenClassificationModule
 from models.roberta_module import RoBERTaForTokenClassificationModule
 from utils import plotting
 from utils.utils import init_dir
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 import rootutils
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -34,14 +34,19 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-def train_single_client(client: Client, cfg: DictConfig, r: int):
+def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True):
     """
-    Train and save a client model seperately in a parallel job.
+    Train and save a client model seperately in a sequential or parallel job.
     """
-    logger: CSVLogger = pl.loggers.CSVLogger(save_dir=cfg.paths.output_dir + cfg.paths.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
-    client.trainer.logger = logger
+    if parallel:
+        cfg.trainer.devices = [client.id]
+    else:
+        cfg.trainer.devices = [0]
+    logger: CSVLogger = pl.loggers.CSVLogger(save_dir=cfg.paths.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
+    trainer: pl.Trainer = hydra.utils.instantiate(cfg.trainer, logger=logger, log_every_n_steps=1)  
+    client.trainer = trainer
     client.trainer.fit(client.model, client.train_data, client.val_data)
-    torch.save(client.model.state_dict(), cfg.paths.output_dir + cfg.paths.client_ckpts_path + f"client_{client.id}.pt")
+    torch.save(client.model.state_dict(), cfg.paths.client_ckpts_path + f"client_{client.id}.pt")
 
 
 def get_dls(cfg: DictConfig, master: bool = False): 
@@ -73,7 +78,7 @@ def evaluate_master_model(model, cfg: DictConfig, r: int):
                     train_data=master_train_dl,
                     val_data=master_val_dl)
     
-    master.model.load_state_dict(torch.load(cfg.paths.output_dir + cfg.paths.master_ckpts_path + f"master_round_{r}.pt"))
+    master.model.load_state_dict(torch.load(cfg.paths.master_ckpts_path + f"master_round_{r}.pt"))
     
     eval_config = copy.deepcopy(cfg.trainer)
     eval_config.devices = 1
@@ -125,9 +130,7 @@ def main(cfg):
     base_trainer_cfg = copy.deepcopy(cfg.trainer)
     # Instantiate clients
     clients = []
-    
     for i in range(cfg.sfl.num_clients):
-        base_trainer_cfg.devices = [i]
         trainer = hydra.utils.instantiate(base_trainer_cfg, log_every_n_steps=1)
         client = Client(
             id=i,
@@ -162,13 +165,12 @@ def main(cfg):
                 if wireless is not None:
                     client.model.add_noise = mses[i]
                 if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+                    client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
                     pass
 
                 # Train client models sequentially on GPU:0
-                client.trainer.devices = [0]
-                train_single_client(client=client, cfg=cfg, r=r)
+                train_single_client(client=client, cfg=cfg, r=r, parallel=False)
                 # logger = pl.loggers.CSVLogger(save_dir=cfg.training.client_log_path, name=f"client_{client.id}_logger", version=f"round_{r}")
                 # client.trainer = pl.Trainer(**cfg.trainer, devices=[0], logger=logger, log_every_n_steps=1) 
                 # client.trainer.fit(client.model, client.train_data, client.val_data)
@@ -181,12 +183,12 @@ def main(cfg):
                 if wireless is not None:
                     client.model.add_noise = mses[i]
                 if r!= 0:
-                    client.model.load_state_dict(torch.load(cfg.training.client_ckpts_path + f"client_{client.id}.pt"))
+                    client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
                 else:
                     pass
 
             # Train client models in parallel
-            Parallel(n_jobs=-1)(delayed(train_single_client)(client, cfg, r) for client in clients)
+            Parallel(n_jobs=-1)(delayed(train_single_client)(client, cfg, r, True) for client in clients)
 
         else:
             log.error("INVALID PROCESS TYPE from {parallel, sequential}")
