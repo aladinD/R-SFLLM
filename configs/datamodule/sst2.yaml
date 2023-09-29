@@ -12,4 +12,4 @@ model_type: null
 num_splits: null
 
 # Truncation of the dataset for test purposes (default = null)
-truncate: 100
+truncate: null

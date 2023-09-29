@@ -1,3 +1,7 @@
+import rootutils
+
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+
 import copy
 import random
 from typing import Optional, Union
@@ -19,9 +23,7 @@ from models.roberta_module import RoBERTaForTokenClassificationModule
 from utils import plotting
 from utils.utils import init_dir
 from omegaconf import DictConfig, OmegaConf, open_dict
-import rootutils
 
-rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 # Seeding
 seed = 42

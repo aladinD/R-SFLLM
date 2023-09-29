@@ -28,7 +28,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
         # BertForSequenceClassification init
         self.num_labels = config.num_labels
         self.config = config
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
         classifier_dropout = (
             config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         )
@@ -139,14 +138,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
-
         embedding_output = self.embeddings(
             input_ids=input_ids,
             position_ids=position_ids,
@@ -154,6 +145,14 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
+
         encoder_outputs = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,
@@ -323,7 +322,6 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
         # BertForTokenClassification init
         self.num_labels = config.num_labels
         self.config = config
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
         classifier_dropout = (
             config.classifier_dropout if config.classifier_dropout is not None else config.hidden_dropout_prob
         )
@@ -433,14 +431,6 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
-
         embedding_output = self.embeddings(
             input_ids=input_ids,
             position_ids=position_ids,
@@ -448,6 +438,14 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
+
         encoder_outputs = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,
@@ -767,14 +765,6 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
 
         import pdb
         pdb.set_trace()
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        # if self.add_noise:
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
 
         embedding_output = self.embeddings(
             input_ids=input_ids,
@@ -783,6 +773,14 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
+
         encoder_outputs = self.encoder(
             embedding_output,
             attention_mask=extended_attention_mask,

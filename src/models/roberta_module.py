@@ -135,14 +135,6 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
-
         embedding_output = self.embeddings(
             input_ids=input_ids,
             position_ids=position_ids,
@@ -150,6 +142,13 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -429,14 +428,6 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
-
         embedding_output = self.embeddings(
             input_ids=input_ids,
             position_ids=position_ids,
@@ -444,6 +435,13 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
 
         encoder_outputs = self.encoder(
             embedding_output,
