@@ -1,3 +1,6 @@
+"""
+Generates experiment configs for all tasks
+"""
 from omegaconf import OmegaConf
 import itertools
 import copy

@@ -1,0 +1,10 @@
+# @package _global_ 
+defaults:
+- override /datamodules: sst2.yaml
+- override /models: bert_for_sequence_classification.yaml
+- override /wireless: no_protection.yaml
+tags:
+- sst2
+- bert_for_sequence_classification
+- no_protection
+task_name: sc

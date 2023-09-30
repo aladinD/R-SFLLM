@@ -1,0 +1,10 @@
+# @package _global_ 
+defaults:
+- override /datamodules: conll2003.yaml
+- override /models: roberta_for_token_classification.yaml
+- override /wireless: null
+tags:
+- conll2003
+- roberta_for_token_classification
+- None
+task_name: ner

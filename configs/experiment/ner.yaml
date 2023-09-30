@@ -1,0 +1,8 @@
+# @package _global_
+
+defaults:
+  - override /datamodule: conll2003.yaml
+  - override /model: bert_for_token_classification.yaml
+
+task_name: ner
+tags: ["bert", "ner", "conll"]

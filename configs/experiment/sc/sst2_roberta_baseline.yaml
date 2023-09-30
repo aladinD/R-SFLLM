@@ -1,0 +1,10 @@
+# @package _global_ 
+defaults:
+- override /datamodules: sst2.yaml
+- override /models: roberta_for_sequence_classification.yaml
+- override /wireless: null
+tags:
+- sst2
+- roberta_for_sequence_classification
+- None
+task_name: sc

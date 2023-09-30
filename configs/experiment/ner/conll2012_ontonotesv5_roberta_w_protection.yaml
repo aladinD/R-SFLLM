@@ -1,0 +1,10 @@
+# @package _global_ 
+defaults:
+- override /datamodules: conll2012_ontonotesv5.yaml
+- override /models: roberta_for_token_classification.yaml
+- override /wireless: w_protection.yaml
+tags:
+- conll2012_ontonotesv5
+- roberta_for_token_classification
+- w_protection
+task_name: ner
