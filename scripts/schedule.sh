@@ -6,5 +6,5 @@
 python src/run.py -m experiment='glob(ner/*)'
 
 # SC scripts 
-python src/run.py -m experiment='glob(ner/*)'
+python src/run.py -m experiment='glob(sc/*)'
 
