@@ -11,6 +11,7 @@ defaults:
   - debug: null # debug mode
   - extras: default.yaml # extra things which happen before tasks, such as pretty printing, tags, and
   # saving config to logs
+  - experiment: null
 
 task_name: sc
 

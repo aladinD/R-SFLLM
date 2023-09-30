@@ -1,7 +1,7 @@
 # @package _global_ 
 defaults:
-- override /datamodules: conll2003.yaml
-- override /models: bert_for_token_classification.yaml
+- override /datamodule: conll2003.yaml
+- override /model: bert_for_token_classification.yaml
 - override /wireless: no_jammer.yaml
 tags:
 - conll2003

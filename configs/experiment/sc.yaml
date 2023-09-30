@@ -1,4 +1,0 @@
-# @package _global_
-defaults:
-  - override /datamodule: sst2.yaml
-  - override /model: mnist.yaml

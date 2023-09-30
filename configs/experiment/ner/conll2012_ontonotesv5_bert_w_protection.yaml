@@ -1,7 +1,7 @@
 # @package _global_ 
 defaults:
-- override /datamodules: conll2012_ontonotesv5.yaml
-- override /models: bert_for_token_classification.yaml
+- override /datamodule: conll2012_ontonotesv5.yaml
+- override /model: bert_for_token_classification.yaml
 - override /wireless: w_protection.yaml
 tags:
 - conll2012_ontonotesv5

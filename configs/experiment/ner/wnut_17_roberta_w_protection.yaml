@@ -1,7 +1,7 @@
 # @package _global_ 
 defaults:
-- override /datamodules: wnut_17.yaml
-- override /models: roberta_for_token_classification.yaml
+- override /datamodule: wnut_17.yaml
+- override /model: roberta_for_token_classification.yaml
 - override /wireless: w_protection.yaml
 tags:
 - wnut_17

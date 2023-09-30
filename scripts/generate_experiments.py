@@ -10,13 +10,13 @@ import rootutils
 def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
     all_dict = {
         "ner": {
-            "datamodules": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
-            "models": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
+            "datamodule": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
+            "model": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
             "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         }, 
         "sc": {
-            "datamodules": ["sst2.yaml", "mrpc.yaml", "qnli.yaml"],
-            "models": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
+            "datamodule": ["sst2.yaml", "mrpc.yaml", "qnli.yaml"],
+            "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
             "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         }
     }
@@ -31,8 +31,8 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
         if not os.path.isdir(task_dir):
             os.mkdir(task_dir)
         
-        dmodules = vals["datamodules"]
-        models = vals["models"]
+        dmodules = vals["datamodule"]
+        models = vals["model"]
         wireless = vals["wireless"]
         names = list(vals.keys())
         combinations = itertools.product(dmodules, models, wireless)
