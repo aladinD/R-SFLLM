@@ -2,6 +2,9 @@
 # Schedule execution of many runs
 # Run from root folder with: bash scripts/schedule.sh
 
-python src/train.py trainer.max_epochs=5 logger=csv
+# NER scripts
+python src/run.py -m experiment='glob(ner/*)'
 
-python src/train.py trainer.max_epochs=10 logger=csv
+# SC scripts 
+python src/run.py -m experiment='glob(ner/*)'
+
