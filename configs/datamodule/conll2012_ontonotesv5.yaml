@@ -1,7 +1,7 @@
 # Datamodule config for CONLL2003 ONTONOTES 5.0 dataset
 _target_: datamodules.ner_datamodule.OntoNotesDataModule
 ner_dataset: conll2012_ontonotesv5
-num_labels: 38
+num_labels: 37
 batch_size: 64
 num_workers: 16
 num_labels: 38

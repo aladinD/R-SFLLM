@@ -505,9 +505,19 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
             self.precision = Precision(task="binary", num_classes=self.num_classes)
             self.recall = Recall(task="binary", num_classes=self.num_classes)
         else:
-            self.f1 = F1Score(task="multiclass", num_classes=self.num_classes)
-            self.precision = Precision(task="multiclass", num_classes=self.num_classes)
-            self.recall = Recall(task="multiclass", num_classes=self.num_classes)
+            # Use macro averaging for WNUT_17 and CONLL2003 datasets due to class imbalance
+            self.f1 = F1Score(task="multiclass", num_classes=self.num_classes, average="macro")
+            self.precision = Precision(task="multiclass", num_classes=self.num_classes, average="macro")
+            self.recall = Recall(task="multiclass", num_classes=self.num_classes, average="macro")
+
+
+    def on_epoch_start(self):
+        """
+        Called at the start of each epoch to reset metrics and avoid accumulation.
+        """
+        self.f1.reset()
+        self.precision.reset()
+        self.recall.reset()
 
 
     def training_step(self, batch: Any, batch_idx) -> torch.Tensor:
@@ -526,8 +536,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Masking out the PAD token
         mask = inputs["attention_mask"].view(-1).bool()
-        valid_preds = preds[mask]
-        valid_target = target[mask]
+        final_mask = (mask & (target != -100))
+        valid_preds = preds[final_mask]
+        valid_target = target[final_mask]
 
         preds = valid_preds
         target = valid_target
@@ -561,8 +572,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Masking out the PAD token
         mask = inputs["attention_mask"].view(-1).bool()
-        valid_preds = preds[mask]
-        valid_target = target[mask]
+        final_mask = (mask & (target != -100))
+        valid_preds = preds[final_mask]
+        valid_target = target[final_mask]
 
         preds = valid_preds
         target = valid_target
@@ -596,8 +608,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Masking out the PAD token
         mask = inputs["attention_mask"].view(-1).bool()
-        valid_preds = preds[mask]
-        valid_target = target[mask]
+        final_mask = (mask & (target != -100))
+        valid_preds = preds[final_mask]
+        valid_target = target[final_mask]
 
         preds = valid_preds
         target = valid_target
