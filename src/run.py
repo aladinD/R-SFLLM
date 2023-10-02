@@ -40,7 +40,7 @@ def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool 
     Train and save a client model seperately in a sequential or parallel job.
     """
     if parallel:
-        cfg.trainer.devices = [client.id]
+        cfg.trainer.devices = [client.id + 4]
     else:
         cfg.trainer.devices = [0]
         
@@ -96,7 +96,7 @@ def evaluate_master_model(model, cfg: DictConfig, r: int):
 
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="config.yaml")
-def main(cfg):
+def main(cfg: DictConfig):
 
     # Logger
     log = utils.get_pylogger(__name__)
@@ -161,7 +161,8 @@ def main(cfg):
     aggregator = Aggregator(name="aggregator")
 
     # Instantiate wireless module
-    wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if cfg.wireless is not None else cfg.wireless
+    has_wireless = cfg.get("wireless", False)
+    wireless: Optional[WirelessModule] = hydra.utils.instantiate(cfg.wireless) if has_wireless else None
     
     # SFL global round loop
     log.info("STARTING SFL TRAINING")
