@@ -35,12 +35,13 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True):
+def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 4):
     """
     Train and save a client model seperately in a sequential or parallel job.
     """
     if parallel:
-        cfg.trainer.devices = [client.id + 4]
+        # hacky way to train on gpus 4, 5, 6, ..., num_clients + 4
+        cfg.trainer.devices = [client.id + dev_offset]
     else:
         cfg.trainer.devices = [0]
         
