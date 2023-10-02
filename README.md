@@ -34,7 +34,7 @@ conda activate sfl
 
 # install resilient_comms
 # contact vlad.andrei@tum.de for permissions
-pip install -r git+https://gitlab.lrz.de/aces/6g-life/resilience/resilient_comms.git
+pip install git+https://gitlab.lrz.de/aces/6g-life/resilience/resilient_comms.git
 
 # install requirements
 pip install -r requirements.txt

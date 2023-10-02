@@ -135,14 +135,6 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
-
         embedding_output = self.embeddings(
             input_ids=input_ids,
             position_ids=position_ids,
@@ -150,6 +142,13 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -429,14 +428,6 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         # and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
         head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-        # Add noise to the input embeddings
-        # THIS WILL BE THE WIRELESS JAMMER CONTRIBUTION
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=self.embeddings.word_embeddings.weight.data.shape).to(self.embeddings.word_embeddings.weight.device)
-            self.embeddings.word_embeddings.weight.data += noise
-        else:
-            pass
-
         embedding_output = self.embeddings(
             input_ids=input_ids,
             position_ids=position_ids,
@@ -444,6 +435,13 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
             inputs_embeds=inputs_embeds,
             past_key_values_length=past_key_values_length,
         )
+
+        # Add noise to the embedding output
+        if self.add_noise is not None:
+            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+            embedding_output += noise
+        else:
+            pass
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -507,9 +505,19 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
             self.precision = Precision(task="binary", num_classes=self.num_classes)
             self.recall = Recall(task="binary", num_classes=self.num_classes)
         else:
-            self.f1 = F1Score(task="multiclass", num_classes=self.num_classes)
-            self.precision = Precision(task="multiclass", num_classes=self.num_classes)
-            self.recall = Recall(task="multiclass", num_classes=self.num_classes)
+            # Use macro averaging for WNUT_17 and CONLL2003 datasets due to class imbalance
+            self.f1 = F1Score(task="multiclass", num_classes=self.num_classes, average="macro")
+            self.precision = Precision(task="multiclass", num_classes=self.num_classes, average="macro")
+            self.recall = Recall(task="multiclass", num_classes=self.num_classes, average="macro")
+
+
+    def on_epoch_start(self):
+        """
+        Called at the start of each epoch to reset metrics and avoid accumulation.
+        """
+        self.f1.reset()
+        self.precision.reset()
+        self.recall.reset()
 
 
     def training_step(self, batch: Any, batch_idx) -> torch.Tensor:
@@ -528,8 +536,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Masking out the PAD token
         mask = inputs["attention_mask"].view(-1).bool()
-        valid_preds = preds[mask]
-        valid_target = target[mask]
+        final_mask = (mask & (target != -100))
+        valid_preds = preds[final_mask]
+        valid_target = target[final_mask]
 
         preds = valid_preds
         target = valid_target
@@ -563,8 +572,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Masking out the PAD token
         mask = inputs["attention_mask"].view(-1).bool()
-        valid_preds = preds[mask]
-        valid_target = target[mask]
+        final_mask = (mask & (target != -100))
+        valid_preds = preds[final_mask]
+        valid_target = target[final_mask]
 
         preds = valid_preds
         target = valid_target
@@ -598,8 +608,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
 
         # Masking out the PAD token
         mask = inputs["attention_mask"].view(-1).bool()
-        valid_preds = preds[mask]
-        valid_target = target[mask]
+        final_mask = (mask & (target != -100))
+        valid_preds = preds[final_mask]
+        valid_target = target[final_mask]
 
         preds = valid_preds
         target = valid_target

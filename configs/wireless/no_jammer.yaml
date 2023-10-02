@@ -1,5 +1,4 @@
 defaults:
   - default.yaml
 
-accelerator: gpu
-
+scenario: no_jammer

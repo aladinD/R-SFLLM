@@ -9,11 +9,11 @@ def accumulate_client_metrics(cfg: DictConfig, client_name: str, logs_path: str)
     Reads and accumulates metrics for a specified client from all rounds.
     """
     # Hyperparameters
-    task = cfg.model.task
+    task = cfg.task_name
     num_epochs = cfg.sfl.num_epochs
     num_rounds = cfg.sfl.num_rounds
 
-    base_path = cfg.training.client_log_path
+    base_path = cfg.paths.client_log_path
     client_dir = os.path.join(base_path, client_name)
     
     # List all rounds for the client
@@ -125,7 +125,7 @@ def plot_metrics(cfg: DictConfig,
     Plots the training and validation metrics for a specified client and the master model.
     """
     # Hyperparameters
-    task = cfg.model.task
+    task = cfg.task_name
     main_title_fontsize = 16
     subtitle_fontsize = 10
 
@@ -149,7 +149,7 @@ def plot_metrics(cfg: DictConfig,
         # Labels and titles
         plt.ylabel('Accuracy')
         main_title = 'Accuracies across Global Rounds and Epochs'
-        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.data.glue_dataset}, Number of Clients: {cfg.sfl.num_clients}"
+        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.datamodule.glue_dataset}, Number of Clients: {cfg.sfl.num_clients}"
         
         plt.suptitle(main_title, fontsize=main_title_fontsize)  
         plt.title(subtitle, fontsize=subtitle_fontsize) 
@@ -167,7 +167,7 @@ def plot_metrics(cfg: DictConfig,
         # Labels and titles
         plt.ylabel('F1 Score')
         main_title = 'F1 Scores across Global Rounds and Epochs'
-        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.data.ner_dataset}, Number of Clients: {cfg.sfl.num_clients}"
+        subtitle = f"Model Type: {cfg.model.config.pretrained_model_name_or_path}, Dataset: {cfg.datamodule.ner_dataset}, Number of Clients: {cfg.sfl.num_clients}"
         
         plt.suptitle(main_title, fontsize=main_title_fontsize)  
         plt.title(subtitle, fontsize=subtitle_fontsize) 

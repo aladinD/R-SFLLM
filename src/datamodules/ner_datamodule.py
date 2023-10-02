@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 from typing import List
 from abc import ABC, abstractmethod
 import os
+from torch.nn.utils.rnn import pad_sequence
 
 
 class NERDataModuleBase(LightningDataModule, ABC):
@@ -124,26 +125,57 @@ class CoNLL2003DataModule(NERDataModuleBase):
         self.val_dataset = self._tokenize(self.val_dataset)
 
 
+    @staticmethod
+    def _align_labels_with_tokens(labels, word_ids):
+        """
+        Aligns the NER labels with the tokenized words. 
+        Takes into account that one word can be split into multiple tokens.
+        """
+        new_labels = []
+        current_word = None
+
+        for word_id in word_ids:
+            # Token doesn't correspond to a word
+            if word_id is None:
+                new_labels.append(-100)
+            # Start of a new word
+            elif word_id != current_word:
+                current_word = word_id
+                new_labels.append(labels[word_id])
+            # Continuation of a word, adjust 'B-' to 'I-' if needed
+            else:
+                label = labels[word_id]
+                if label % 2 == 1:
+                    label += 1
+                new_labels.append(label)
+
+        return new_labels
+
+
     def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
         """
         Tokenizes the dataset.
         """
-        tag_values = ['O', 'B-MISC', 'I-MISC', 'B-PER', 'I-PER', 'B-ORG', 'I-ORG', 'B-LOC', 'I-LOC', 'PAD']
-        tag2idx = {t: i for i, t in enumerate(tag_values)}
-
+        # Define tokenizer        
         tokenizer = AutoTokenizer.from_pretrained(self.model_type)
-        sentences = [" ".join(tokens) for tokens in dataset["tokens"]]
-        encodings = tokenizer(sentences, truncation=True, padding=True)
 
-        labels = []
-        for i, label_seq in enumerate(dataset["ner_tags"]):
-            label_seq = [tag2idx[tag_values[label]] for label in label_seq]
-            padding_length = len(encodings['input_ids'][i]) - len(label_seq)
-            labels.append(label_seq + ([tag2idx['PAD']] * padding_length))
+        # Handle RoBERTa specific prefix
+        if self.model_type.startswith("roberta-"):
+            tokenizer.add_prefix_space = True
 
-        labels = torch.tensor(labels, dtype=torch.long)
-        input_ids = torch.tensor(encodings['input_ids'])
-        attention_mask = torch.tensor(encodings['attention_mask'])
+        # Tokenize the input tokens with additional parameters
+        tokenized_inputs = tokenizer(dataset["tokens"], truncation=True, is_split_into_words=True, padding=True, return_offsets_mapping=True)
+
+        # Align the NER labels with the tokenized inputs
+        new_labels = []
+        for i, labels in enumerate(dataset["ner_tags"]):
+            word_ids = tokenized_inputs.word_ids(i)
+            new_labels.append(self._align_labels_with_tokens(labels, word_ids))
+
+        # Convert tokenized outputs to tensors
+        input_ids = torch.tensor(tokenized_inputs["input_ids"], dtype=torch.long)
+        attention_mask = torch.tensor(tokenized_inputs["attention_mask"], dtype=torch.long)
+        labels = pad_sequence([torch.tensor(label_seq, dtype=torch.long) for label_seq in new_labels], padding_value=-100, batch_first=True)
 
         dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
 
@@ -173,28 +205,63 @@ class WNUT17DataModule(NERDataModuleBase):
         self.val_dataset = self._tokenize(self.val_dataset)
 
 
+    @staticmethod
+    def _align_labels_with_tokens(labels, word_ids):
+        """
+        Aligns the NER labels with the tokenized words. 
+        Takes into account that one word can be split into multiple tokens.
+        """
+        new_labels = []
+        current_word = None
+
+        for word_id in word_ids:
+
+            # Token doesn't correspond to a word
+            if word_id is None:
+                new_labels.append(-100)
+
+            # Start of a new word
+            elif word_id != current_word:
+                current_word = word_id
+                new_labels.append(labels[word_id])
+
+            # Continuation of a word, adjust 'B-' to 'I-' if needed
+            else:
+                label = labels[word_id]
+                if label % 2 == 1:
+                    label += 1
+                new_labels.append(label)
+
+        return new_labels
+
+
     def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
         """
         Tokenizes the dataset.
         """
-        tag_values = ['O', 'B-corporation', 'I-corporation', 'B-creative-work', 'I-creative-work', 'B-group', 
-                           'I-group', 'B-location', 'I-location', 'B-person', 'I-person', 'B-product', 'I-product', 
-                           'PAD']
-        tag2idx = {t: i for i, t in enumerate(tag_values)}
-
+        # Define tokenizer        
         tokenizer = AutoTokenizer.from_pretrained(self.model_type)
-        sentences = [" ".join(tokens) for tokens in dataset["tokens"]]
-        encodings = tokenizer(sentences, truncation=True, padding=True)
 
-        labels = []
-        for i, label_seq in enumerate(dataset["ner_tags"]):
-            label_seq = [tag2idx[tag_values[label]] for label in label_seq]
-            padding_length = len(encodings['input_ids'][i]) - len(label_seq)
-            labels.append(label_seq + ([tag2idx['PAD']] * padding_length))
+        # Handle RoBERTa specific prefix
+        if self.model_type.startswith("roberta-"):
+            tokenizer.add_prefix_space = True
 
-        labels = torch.tensor(labels, dtype=torch.long)
-        input_ids = torch.tensor(encodings['input_ids'])
-        attention_mask = torch.tensor(encodings['attention_mask'])
+        # Tokenize the input tokens with additional parameters
+        tokenized_inputs = tokenizer(dataset["tokens"], truncation=True, is_split_into_words=True, padding=True, return_offsets_mapping=True)
+
+        # Align the NER labels with the tokenized inputs
+        new_labels = []
+        for i, labels in enumerate(dataset["ner_tags"]):
+            word_ids = tokenized_inputs.word_ids(i)
+            new_labels.append(self._align_labels_with_tokens(labels, word_ids))
+
+        # Hanlde padding for labels separately 
+        # The reason for using pad_sequence for the labels is to ensure all label sequences are of the same length 
+        # (padded to the length of the longest label sequence in the batch). It's important to specify -100 as the 
+        # padding value because, during the loss computation in models like BERT, -100 is typically used to ignore tokens.
+        input_ids = torch.tensor(tokenized_inputs["input_ids"], dtype=torch.long)
+        attention_mask = torch.tensor(tokenized_inputs["attention_mask"], dtype=torch.long)
+        labels = pad_sequence([torch.tensor(label_seq, dtype=torch.long) for label_seq in new_labels], padding_value=-100, batch_first=True)
 
         dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
 
@@ -226,45 +293,62 @@ class OntoNotesDataModule(NERDataModuleBase):
         self.val_dataset = self._tokenize(self.val_dataset)
 
 
+    def _align_labels_with_tokens(self, labels, word_ids):
+        """
+        Aligns the NER labels with the tokenized words. 
+        Takes into account that one word can be split into multiple tokens.
+        """
+        new_labels = []
+        current_word = None
+
+        for idx, word_id in enumerate(word_ids):
+
+            # Token doesn't correspond to a word
+            if word_id is None:
+                new_labels.append(-100)
+
+            # Start of a new word
+            elif word_id != current_word:
+                current_word = word_id
+                new_labels.append(labels[word_id])
+
+            # Continuation of a word; adjust 'B-' to 'I-' if needed
+            else:
+                label = labels[word_id]
+                if label % 2 == 1:
+                    label += 1
+                new_labels.append(label)
+
+        return new_labels
+
+
     def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
         """
-        Tokenizes the dataset.
+        Tokenizes the dataset for OntoNotes.
         """
-        tag_values = ['O', 'B-PERSON', 'I-PERSON', 'B-NORP', 'I-NORP', 'B-FAC', 'I-FAC', 'B-ORG', 
-                      'I-ORG', 'B-GPE', 'I-GPE', 'B-LOC', 'I-LOC', 'B-PRODUCT', 'I-PRODUCT', 'B-DATE', 
-                      'I-DATE', 'B-TIME', 'I-TIME', 'B-PERCENT', 'I-PERCENT', 'B-MONEY', 'I-MONEY', 'B-QUANTITY', 
-                      'I-QUANTITY', 'B-ORDINAL', 'I-ORDINAL', 'B-CARDINAL', 'I-CARDINAL', 'B-EVENT', 'I-EVENT', 
-                      'B-WORK_OF_ART', 'I-WORK_OF_ART', 'B-LAW', 'I-LAW', 'B-LANGUAGE', 'I-LANGUAGE', 'PAD']
-        tag2idx = {t: i for i, t in enumerate(tag_values)}
-
-        # Extract sentences and corresponding labels from the nested structure
-        all_sentences = []
-        all_labels = []
-
-        for example in dataset:
-            for sentence in example['sentences']:
-                words = sentence['words']
-                ner_tags = sentence['named_entities']
-                all_sentences.append(" ".join(words))
-                all_labels.append(ner_tags)
-
-        # Truncate after flattening
-        if self.truncate is not None:
-            all_sentences = all_sentences[:self.truncate]
-            all_labels = all_labels[:self.truncate]
-
-        # Tokenizing the sentences
+        # Define tokenizer        
         tokenizer = AutoTokenizer.from_pretrained(self.model_type)
-        encodings = tokenizer(all_sentences, truncation=True, padding=True)
 
-        labels = []
-        for i, label_seq in enumerate(all_labels):
-            padding_length = len(encodings['input_ids'][i]) - len(label_seq)
-            labels.append(label_seq + ([tag2idx['PAD']] * padding_length))
+        # Handle RoBERTa specific prefix
+        if self.model_type.startswith("roberta-"):
+            tokenizer.add_prefix_space = True
 
-        labels = torch.tensor(labels, dtype=torch.long)
-        input_ids = torch.tensor(encodings['input_ids'])
-        attention_mask = torch.tensor(encodings['attention_mask'])
+        all_sentences = [sentence['words'] for example in dataset for sentence in example['sentences']]
+        all_labels = [sentence['named_entities'] for example in dataset for sentence in example['sentences']]
+        
+        # Tokenize the sentences
+        tokenized_inputs = tokenizer(all_sentences, truncation=True, padding=True, is_split_into_words=True, return_offsets_mapping=True)
+
+        # Align the NER labels with the tokenized inputs
+        aligned_labels = []
+        for i, labels in enumerate(all_labels):
+            word_ids = tokenized_inputs.word_ids(i)
+            aligned_labels.append(self._align_labels_with_tokens(labels, word_ids))
+
+        # Convert tokenized outputs to tensors
+        input_ids = torch.tensor(tokenized_inputs["input_ids"], dtype=torch.long)
+        attention_mask = torch.tensor(tokenized_inputs["attention_mask"], dtype=torch.long)
+        labels = pad_sequence([torch.tensor(label_seq, dtype=torch.long) for label_seq in aligned_labels], padding_value=-100, batch_first=True)
 
         dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
 

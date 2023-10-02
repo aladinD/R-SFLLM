@@ -14,5 +14,14 @@ log_dir: ${paths.root_dir}/logs/
 # use it to store all files generated during the run, like ckpts and metrics
 output_dir: ${hydra:runtime.output_dir}
 
+# paths where the checkpoints, plots and logs for master and clients are saved
+# it is advised to not change it.
+client_ckpts_path: ${hydra:runtime.output_dir}/ckpts/client_ckpts/
+master_ckpts_path: ${hydra:runtime.output_dir}/ckpts/master_ckpts/
+log_path: ${hydra:runtime.output_dir}/logs/
+client_log_path: ${hydra:runtime.output_dir}/logs/clients/
+master_log_path: ${hydra:runtime.output_dir}/logs/master/
+plot_path: ${hydra:runtime.output_dir}/plots/
+
 # path to working directory
 work_dir: ${hydra:runtime.cwd}
