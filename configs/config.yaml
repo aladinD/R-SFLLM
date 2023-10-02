@@ -5,8 +5,8 @@ defaults:
   - wireless: no_jammer.yaml # wireless specification
   - paths: default.yaml # paths to different stuff like datasets, logs, project root, etc.
   - hydra: default.yaml # additional hydra options
-  - datamodule: sst2.yaml # datamodule
-  - model: bert_for_sequence_classification.yaml # model being trained
+  - datamodule: mrpc.yaml # datamodule
+  - model: roberta_for_sequence_classification.yaml # model being trained
   - trainer: gpu.yaml # trainer for all models. note we only change the device during training.
   - debug: null # debug mode
   - extras: default.yaml # extra things which happen before tasks, such as pretty printing, tags, and
