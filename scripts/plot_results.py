@@ -229,7 +229,7 @@ def accumulate_master_metrics(config: dict, logs_path: str) -> None:
 #     plt.tight_layout()
 #     plt.savefig(os.path.join(main_dir, 'multiplot.png'))
 
-def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="client_0"):
+def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="client_0", plot_name="multiplot.png"):
     """
     Generate a multiplot for all the subfolders that match the given dataset and model.
     """
@@ -309,16 +309,17 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
     # Adjust spacing and layout
     plt.subplots_adjust(bottom=0.1)
 
-    plt.savefig(os.path.join(main_dir, 'multiplot.png'))
+    plt.savefig(os.path.join(main_dir, plot_name))
 
 
 
 
 
 if __name__ == "__main__":
-    generate_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_17-16-41', 
-                       dataset='mrpc', 
-                       model='bert_for_sequence_classification')
+    generate_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
+                       dataset='sst2', 
+                       model='roberta_for_sequence_classification',
+                       plot_name="multiplot_sst2_roberta.png")
     
 
 
