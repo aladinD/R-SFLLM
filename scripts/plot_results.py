@@ -2,12 +2,13 @@ import rootutils
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-# from src.utils.plotting import accumulate_client_metrics, accumulate_master_metrics
+from src.utils.plotting import accumulate_client_metrics, accumulate_master_metrics
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import yaml
+from omegaconf import OmegaConf, DictConfig
 
 
 def fetch_relevant_directories(main_dir: str, dataset: str, model: str) -> list:
@@ -43,7 +44,7 @@ def fetch_relevant_directories(main_dir: str, dataset: str, model: str) -> list:
     return matched_dirs
 
 
-def fetch_configuration(directory: str) -> dict:
+def fetch_configuration(directory: str) -> DictConfig:
     """
     Fetch and interpret the configuration from `config_tree.yaml` in the given directory.
     
@@ -51,119 +52,14 @@ def fetch_configuration(directory: str) -> dict:
     - directory (str): Path to the target directory.
 
     Returns:
-    - dict: Configuration dictionary.
+    - DictConfig: Configuration dictionary.
     """
     config_path = os.path.join(directory, "config_tree.yaml")
     
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
     
-    return config
-
-
-def accumulate_client_metrics(config: dict, client_name: str, logs_path: str) -> None:
-    """
-    Reads and accumulates metrics for a specified client from all rounds.
-    """
-    # Extracting hyperparameters from the configuration
-    task = config["task_name"]
-    num_epochs = config["sfl"]["num_epochs"]
-    num_rounds = config["sfl"]["num_rounds"]
-
-    base_path = os.path.join(logs_path, "logs", "clients")
-    client_dir = os.path.join(base_path, client_name)
-    
-    # List all rounds for the client
-    rounds = [d for d in os.listdir(client_dir) if os.path.isdir(os.path.join(client_dir, d))]
-    rounds = rounds[:num_rounds]
-    
-    all_train_metrics = []
-    all_val_metrics = []
-    for idx, r in enumerate(rounds):
-        metrics_path = os.path.join(client_dir, r, 'metrics.csv')
-        if os.path.exists(metrics_path):
-            df = pd.read_csv(metrics_path)
-            
-            # Update the epoch number by adding an offset
-            df['epoch'] = df['epoch'] + idx * num_epochs
-            
-            # Split the metrics into training and validation
-            if task == "sc":
-                train_metrics = df[['epoch', 'train_loss', 'train_acc']]
-                val_metrics = df[['epoch', 'val_loss', 'val_acc']]
-            elif task == "ner":
-                train_metrics = df[['epoch', 'train_loss', 'train_f1', 'train_precision', 'train_recall']]
-                val_metrics = df[['epoch', 'val_loss', 'val_f1', 'val_precision', 'val_recall']]
-            else:
-                print("ERROR")
-            
-            all_train_metrics.append(train_metrics)
-            all_val_metrics.append(val_metrics)
-    
-    # Concatenate metrics from all rounds
-    train_df = pd.concat(all_train_metrics, ignore_index=True)
-    val_df = pd.concat(all_val_metrics, ignore_index=True)
-    
-    # Drop rows where values are NaN
-    if task == "sc":	
-        train_df.dropna(subset=['train_acc'], inplace=True)        
-        val_df.dropna(subset=['val_acc'], inplace=True)
-    elif task == "ner":
-        train_df.dropna(subset=['train_f1'], inplace=True)
-        val_df.dropna(subset=['val_f1'], inplace=True)
-    else:
-        print("ERROR")
-
-    # Reset index
-    train_df.reset_index(drop=True, inplace=True)
-    val_df.reset_index(drop=True, inplace=True)
-    
-    return train_df, val_df
-
-
-def accumulate_master_metrics(config: dict, logs_path: str) -> None:
-    """
-    Reads and accumulates metrics for the master model from all rounds.
-    """
-    # Extracting hyperparameters from the configuration
-    num_epochs = config["sfl"]["num_epochs"]
-    num_rounds = config["sfl"]["num_rounds"]
-
-    base_path = os.path.join(logs_path, "logs", "master")
-    train_dir = os.path.join(base_path, 'train')
-    val_dir = os.path.join(base_path, 'validation')
-    
-    # List all rounds for the master model
-    rounds = [d for d in os.listdir(train_dir) if os.path.isdir(os.path.join(train_dir, d))]
-    rounds = rounds[:num_rounds]
-    
-    all_train_metrics = []
-    all_val_metrics = []
-    for idx, r in enumerate(rounds):
-        train_metrics_path = os.path.join(train_dir, r, 'metrics.csv')
-        val_metrics_path = os.path.join(val_dir, r, 'metrics.csv')
-        
-        if os.path.exists(train_metrics_path):
-            train_df = pd.read_csv(train_metrics_path)
-            # Update the epoch number based on the round number
-            train_df['epoch'] = train_df['epoch'] + idx * num_epochs - 1
-            all_train_metrics.append(train_df)
-        
-        if os.path.exists(val_metrics_path):
-            val_df = pd.read_csv(val_metrics_path)
-            # Update the epoch number based on the round number
-            val_df['epoch'] = val_df['epoch'] + idx * num_epochs - 1
-            all_val_metrics.append(val_df)
-    
-    # Concatenate metrics from all rounds
-    accumulated_train_df = pd.concat(all_train_metrics, ignore_index=True)
-    accumulated_val_df = pd.concat(all_val_metrics, ignore_index=True)
-
-    # Adjust master epoch numbering
-    accumulated_train_df['epoch'] = accumulated_train_df['epoch'] + num_epochs
-    accumulated_val_df['epoch'] = accumulated_val_df['epoch'] + num_epochs
-    
-    return accumulated_train_df, accumulated_val_df
+    return OmegaConf.create(config)
 
 
 def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="client_0", plot_name="multiplot.png"):
@@ -188,7 +84,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         config = fetch_configuration(directory)
 
         # Fetch the scenario from the config or tags.log
-        scenario = config["tags"][-1] if "tags" in config else None
+        scenario = config.tags[-1] if "tags" in config else None
         if not scenario:
             with open(os.path.join(directory, "tags.log"), 'r') as file:
                 content = file.read()
@@ -199,11 +95,11 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         ax = axes[idx // cols, idx % cols] if rows > 1 else axes[idx % cols]
 
         # Plot the metrics for the current directory on the current subplot axis
-        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", directory)
-        master_train_df, master_val_df = accumulate_master_metrics(config, directory)
-        
+        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
+        master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
+
         # Extracting parameters from the configuration
-        task = config["task_name"]
+        task = config.task_name
         if task == "sc":
             # Plot val metrics for client and master model for sequence classification
             ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name} per epoch val accuracies', color='blue', linestyle='-', marker='o')
@@ -217,7 +113,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
             ax.set_ylabel('F1 Score')
         
         # Set the y-axis scale
-        ax.set_ylim(0.5, 1)
+        ax.set_ylim(0.4, 1)
 
         # Set scenario titles
         title_mapping = {
@@ -248,6 +144,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
     plt.subplots_adjust(bottom=0.1)
 
     plt.savefig(os.path.join(main_dir, plot_name))
+
 
 
 def generate_joint_plot(main_dir: str, 
@@ -281,7 +178,7 @@ def generate_joint_plot(main_dir: str,
 
         # Handle potential errors while fetching scenario
         try:
-            scenario = config["tags"][-1] if "tags" in config else None
+            scenario = config.tags[-1] if "tags" in config else None
             if not scenario:
                 with open(os.path.join(directory, "tags.log"), 'r') as file:
                     content = file.read()
@@ -292,8 +189,8 @@ def generate_joint_plot(main_dir: str,
             continue
         
         # Fetch metrics for the current directory
-        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", directory)
-        master_train_df, master_val_df = accumulate_master_metrics(config, directory)
+        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
+        master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
         
         # Extracting task from the configuration
         task = config.get("task_name", "")
@@ -327,13 +224,13 @@ def generate_joint_plot(main_dir: str,
     # Set title
     main_title_fontsize = 16
     subtitle_fontsize = 10
-    model = config["tags"][1].split("_")[0]
+    model = config.tags[1].split("_")[0]
     model_task = "Sequence Classification" if task == "sc" else "Named Entity Recognition"
-    dataset_name = config["tags"][0]
-    num_labels = config["model"]["config"]["num_labels"]
-    num_clients = config["sfl"]["num_clients"]
-    num_epochs = config["sfl"]["num_epochs"]
-    num_rounds = config["sfl"]["num_rounds"]
+    dataset_name = config.tags[0]
+    num_labels = config.model.config.num_labels
+    num_clients = config.sfl.num_clients
+    num_epochs = config.sfl.num_epochs
+    num_rounds = config.sfl.num_rounds
 
     if task == "sc":
         ax.set_ylabel('Accuracy')
@@ -386,7 +283,7 @@ def generate_joint_bar_plot(main_dir: str,
 
         # Handle potential errors while fetching scenario
         try:
-            scenario = config["tags"][-1] if "tags" in config else None
+            scenario = config.tags[-1] if "tags" in config else None
             if not scenario:
                 with open(os.path.join(directory, "tags.log"), 'r') as file:
                     content = file.read()
@@ -397,8 +294,8 @@ def generate_joint_bar_plot(main_dir: str,
             continue
         
         # Fetch metrics for the current directory
-        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", directory)
-        master_train_df, master_val_df = accumulate_master_metrics(config, directory)
+        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
+        master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
         
         # Extracting task from the configuration
         task = config.get("task_name", "")
@@ -448,13 +345,13 @@ def generate_joint_bar_plot(main_dir: str,
     # Set title
     main_title_fontsize = 16
     subtitle_fontsize = 10
-    model = config["tags"][1].split("_")[0]
+    model = config.tags[1].split("_")[0]
     model_task = "Sequence Classification" if task == "sc" else "Named Entity Recognition"
-    dataset_name = config["tags"][0]
-    num_labels = config["model"]["config"]["num_labels"]
-    num_clients = config["sfl"]["num_clients"]
-    num_epochs = config["sfl"]["num_epochs"]
-    num_rounds = config["sfl"]["num_rounds"]
+    dataset_name = config.tags[0]
+    num_labels = config.model.config.num_labels
+    num_clients = config.sfl.num_clients
+    num_epochs = config.sfl.num_epochs
+    num_rounds = config.sfl.num_rounds
 
     if task == "sc":
         main_title = 'Classification Accuracies across Global Rounds and Epochs'
@@ -481,9 +378,9 @@ def generate_joint_bar_plot(main_dir: str,
 if __name__ == "__main__":
     generate_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
                        dataset='sst2', 
-                       model='roberta_for_sequence_classification',
+                       model='bert_for_sequence_classification',
                        client_name="client_0",
-                       plot_name="multiplot_sst2_roberta.png")
+                       plot_name="multiplot_sst2_bert.png")
     
     generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
                        dataset='sst2', 
@@ -494,9 +391,9 @@ if __name__ == "__main__":
     
     generate_joint_bar_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42',
                             dataset='sst2',
-                            model='roberta_for_sequence_classification',
+                            model='bert_for_sequence_classification',
                             plot_data='both',
-                            client_name="client_1",
-                            plot_name="barplot_sst2_roberta.png")
+                            client_name="client_0",
+                            plot_name="barplot_sst2_bert.png")
     
 
