@@ -1,5 +1,0 @@
-defaults:
-  - sc/mrpc_bert_baseline.yaml
-  - sc/mrpc_bert_no_jammer.yaml
-  - sc/mrpc_bert_no_protection.yaml
-  - sc/mrpc_bert_w_protection.yaml
