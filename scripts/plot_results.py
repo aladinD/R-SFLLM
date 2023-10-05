@@ -496,7 +496,7 @@ if __name__ == "__main__":
                             dataset='sst2',
                             model='roberta_for_sequence_classification',
                             plot_data='both',
-                            client_name="client_0",
+                            client_name="client_1",
                             plot_name="barplot_sst2_roberta.png")
     
 
