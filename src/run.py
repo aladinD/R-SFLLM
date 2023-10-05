@@ -35,7 +35,7 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 4):
+def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 3):
     """
     Train and save a client model seperately in a sequential or parallel job.
     """
@@ -122,7 +122,6 @@ def main(cfg: DictConfig):
     cfg.datamodule.num_splits = cfg.sfl.num_clients
     cfg.datamodule.model_type = model_cfg.pretrained_model_name_or_path
     train_dls, val_dls = get_dls(cfg, master=False)
-    print("LNE : ", len(train_dls[1]))
 
     # We defer setting additional model attributes, since LitModule does not allow for some reason 
     # to initialize this in the constructor and there is imo 
@@ -141,6 +140,7 @@ def main(cfg: DictConfig):
     # Pretty print stuff for debug and save config to file
     utils.extras(cfg=cfg)
     log.info(f"Instantiating Clients")
+
     # Instantiate clients
     clients = []
     client_configs = []
