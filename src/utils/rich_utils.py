@@ -71,6 +71,12 @@ def print_config_tree(
 
     # save config tree to file
     if save_to_file:
+        
+        # Save as a .yaml file
+        yaml_path = Path(cfg.paths.output_dir, "config_tree.yaml")
+        OmegaConf.save(cfg, yaml_path, resolve=True)
+
+        # Alternatively, save as a .log file as well
         with open(Path(cfg.paths.output_dir, "config_tree.log"), "w") as file:
             rich.print(tree, file=file)
 
