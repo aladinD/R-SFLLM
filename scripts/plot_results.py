@@ -2,7 +2,7 @@ import rootutils
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from src.utils.plotting import accumulate_client_metrics, accumulate_master_metrics
+# from src.utils.plotting import accumulate_client_metrics, accumulate_master_metrics
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -165,69 +165,6 @@ def accumulate_master_metrics(config: dict, logs_path: str) -> None:
     
     return accumulated_train_df, accumulated_val_df
 
-
-
-
-
-# def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="client_0"):
-#     """
-#     Generate a multiplot for all the subfolders that match the given dataset and model.
-#     """
-#     # Fetch all relevant directories based on the dataset and model
-#     directories = fetch_relevant_directories(main_dir, dataset, model)
-    
-#     # Number of directories fetched
-#     num_dirs = len(directories)
-    
-#     # Calculate the layout for the subplots
-#     cols = 2
-#     rows = (num_dirs + 1) // cols
-    
-#     # Create the main figure for multiplot
-#     fig, axes = plt.subplots(rows, cols, figsize=(15, 5 * rows))
-    
-#     for idx, directory in enumerate(directories):
-#         # Fetch the configuration for the current directory
-#         config = fetch_configuration(directory)
-        
-#         # Determine the current subplot axis
-#         ax = axes[idx // cols, idx % cols] if rows > 1 else axes[idx % cols]
-        
-#         # Plot the metrics for the current directory on the current subplot axis
-#         # client_train_df, client_val_df = accumulate_client_metrics(config, 'client_0_logger', directory)
-#         client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", directory)
-#         master_train_df, master_val_df = accumulate_master_metrics(config, directory)
-        
-#         # Extracting parameters from the configuration
-#         task = config["task_name"]
-#         if task == "sc":
-#             # Plot val metrics for client and master model for sequence classification
-#             # ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'client_0 per epoch val accuracies', color='blue', linestyle='-', marker='o')
-#             ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name} per epoch val accuracies', color='blue', linestyle='-', marker='o')
-#             ax.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
-#             ax.set_ylabel('Accuracy')
-        
-#         elif task == "ner":
-#             # Plot F1 score metrics for client and master model for NER
-#             # ax.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'client_0 per epoch val F1', color='blue', linestyle='-', marker='o')
-#             ax.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{client_name} per epoch val F1', color='blue', linestyle='-', marker='o')
-#             ax.plot(master_val_df['epoch'], master_val_df['test_f1'], label='global val F1 after each round', color='red', linestyle='-', marker='o')
-#             ax.set_ylabel('F1 Score')
-        
-#         main_title = f"Results for {config['model']['config']['pretrained_model_name_or_path']}"
-#         ax.set_title(main_title)
-#         ax.set_xlabel('Cumulative Epochs')
-#         ax.legend()
-#         ax.grid(True, alpha=0.5)
-    
-#     # Remove any unused subplots
-#     for j in range(idx + 1, rows * cols):
-#         fig.delaxes(axes.flatten()[j])
-
-
-#     # Tight layout and save the multiplot
-#     plt.tight_layout()
-#     plt.savefig(os.path.join(main_dir, 'multiplot.png'))
 
 def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="client_0", plot_name="multiplot.png"):
     """

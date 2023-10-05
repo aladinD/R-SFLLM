@@ -10,13 +10,13 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
     """
     # Define available task configurations
     all_dict = {
-        "ner": {
-            "datamodule": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
-            "model": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
-            "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
-        }, 
+        # "ner": {
+        #     "datamodule": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
+        #     "model": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
+        #     "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
+        # }, 
         "sc": {
-            "datamodule": ["sst2.yaml", "mrpc.yaml", "qnli.yaml"],
+            "datamodule": ["qnli.yaml"],
             "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
             "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         }
@@ -24,7 +24,7 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
 
     # Base configuration scaffold
     config_scaffold = {
-        "defaults": [{f"override /{o}": None} for o in all_dict["ner"].keys()],
+        "defaults": [{f"override /{o}": None} for o in all_dict["sc"].keys()],
         "tags": [],
         "task_name": None
     }
@@ -32,11 +32,12 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
 
     # Loop through tasks and their configurations and generate experiment configs
     for task, vals in all_dict.items():
-        task_dir = os.path.join(experiment_dir, task)
 
-        # Create task directory if it doesn't exist
-        if not os.path.isdir(task_dir):
-            os.mkdir(task_dir)
+        task_dir = experiment_dir
+        # # Create task directory if it doesn't exist
+        # task_dir = os.path.join(experiment_dir, task)
+        # if not os.path.isdir(task_dir):
+        #     os.mkdir(task_dir)
         
         # Extract individual configurations
         dmodules = vals["datamodule"]
