@@ -32,9 +32,9 @@ conda activate sfl
 # install pytorch according to instructions
 # https://pytorch.org/get-started/
 
-# install resilient_comms
-# contact vlad.andrei@tum.de for permissions
+# install resilient_comms and isac (contact vlad.andrei@tum.de for permissions)
 pip install git+https://gitlab.lrz.de/aces/6g-life/resilience/resilient_comms.git
+pip install git+https://gitlab.lrz.de/aces/6g-life/integrated_sensing_and_communication.git
 
 # install requirements
 pip install -r requirements.txt
