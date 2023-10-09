@@ -83,6 +83,12 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         # Fetch the configuration for the current directory
         config = fetch_configuration(directory)
 
+        # Handle relative paths
+        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
+        relative_path = os.path.join(*relative_path_components[3:4])
+        relative_path = os.path.join(relative_path, 'logs/')  
+        config.paths.log_path = os.path.join(main_dir, relative_path)
+
         # Fetch the scenario from the config or tags.log
         scenario = config.tags[-1] if "tags" in config else None
         if not scenario:
@@ -95,6 +101,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         ax = axes[idx // cols, idx % cols] if rows > 1 else axes[idx % cols]
 
         # Plot the metrics for the current directory on the current subplot axis
+        print("LOG PATH : ", config.paths.log_path)
         client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
         master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
 
@@ -102,14 +109,19 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         task = config.task_name
         if task == "sc":
             # Plot val metrics for client and master model for sequence classification
-            ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name} per epoch val accuracies', color='blue', linestyle='-', marker='o')
-            ax.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
+            ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name}', color='blue', linestyle='-', marker='o')
+            ax.plot(master_val_df['epoch'], master_val_df['test_acc'], label='Global SFL Model', color='red', linestyle='-', marker='o')
+            
             ax.set_ylabel('Accuracy')
         
         elif task == "ner":
             # Plot F1 score metrics for client and master model for NER
-            ax.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{client_name} per epoch val F1', color='blue', linestyle='-', marker='o')
-            ax.plot(master_val_df['epoch'], master_val_df['test_f1'], label='global val F1 after each round', color='red', linestyle='-', marker='o')
+            print("CLIENT VAL DF : ", client_val_df.head())
+            print("MASTER VAL DF : ", master_val_df.head())
+            
+            ax.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{client_name}', color='blue', linestyle='-', marker='o')
+            ax.plot(master_val_df['epoch'], master_val_df['test_f1'], label='Global SFL Model', color='red', linestyle='-', marker='o')
+            
             ax.set_ylabel('F1 Score')
         
         # Set the y-axis scale
@@ -117,6 +129,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
 
         # Set scenario titles
         title_mapping = {
+            "None": "Baseline Performance without the Wireless Channel",
             "no_jammer": "No Jamming, only Wireless Impairments",
             "no_protection": "Adversarial Jamming without Protection",
             "w_protection": "Adversarial Jamming with Protection",
@@ -134,14 +147,36 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
     lines, labels = ax.get_legend_handles_labels()
     fig.legend(lines, labels, loc='lower center', fancybox=True, shadow=True, ncol=2)
 
-    # Add a title for the whole multiplot
-    fig.suptitle('Accuracies across Global Rounds and Epochs', fontsize=20)
+    # Title
+    main_title_fontsize = 20
+    subtext_fontsize = 12
+    model = config.tags[1].split("_")[0]
+    model_task = "Sequence Classification" if task == "sc" else "Named Entity Recognition"
+    dataset_name = config.tags[0]
+    num_labels = config.model.config.num_labels
+    num_clients = config.sfl.num_clients
+    num_epochs = config.sfl.num_epochs
+    num_rounds = config.sfl.num_rounds
+
+    if task == "sc":
+        main_title = 'Classification Accuracies across Global Rounds and Epochs'
+
+    elif task == "ner":
+        main_title = 'F1 Scores across Global Rounds and Epochs'
+
+    # fig.suptitle('Classification Accuracies across Global Rounds and Epochs', fontsize=20)
+    subtext = f"Model Type: {model}, Model Task: {model_task}, Dataset: {dataset_name}, Number of Labels: {num_labels}, Number of Clients: {num_clients}, Number of Epochs: {num_epochs}, Number of SFL Rounds: {num_rounds}" 
+    
+    fig.suptitle(main_title, fontsize=main_title_fontsize)
+    fig.text(0.5, 0.92, subtext, ha='center', va='center', fontsize=subtext_fontsize)
+    # fig.text(0.5, 0.92, 'Your Sub-Title Here', ha='center', va='center', fontsize=16)
 
     # Tight layout and save the multiplot
     plt.tight_layout()
 
     # Adjust spacing and layout
-    plt.subplots_adjust(bottom=0.1)
+    # plt.subplots_adjust(bottom=0.1)
+    plt.subplots_adjust(bottom=0.1, top=0.85)
 
     plt.savefig(os.path.join(main_dir, plot_name))
 
@@ -175,6 +210,12 @@ def generate_joint_plot(main_dir: str,
     for directory in directories:
         # Fetch the configuration for the current directory
         config = fetch_configuration(directory)
+
+        # Handle relative paths
+        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
+        relative_path = os.path.join(*relative_path_components[3:4])
+        relative_path = os.path.join(relative_path, 'logs/')  
+        config.paths.log_path = os.path.join(main_dir, relative_path)
 
         # Handle potential errors while fetching scenario
         try:
@@ -281,6 +322,12 @@ def generate_joint_bar_plot(main_dir: str,
         # Fetch the configuration for the current directory
         config = fetch_configuration(directory)
 
+        # Handle relative paths
+        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
+        relative_path = os.path.join(*relative_path_components[3:4])
+        relative_path = os.path.join(relative_path, 'logs/')  
+        config.paths.log_path = os.path.join(main_dir, relative_path)
+
         # Handle potential errors while fetching scenario
         try:
             scenario = config.tags[-1] if "tags" in config else None
@@ -315,7 +362,7 @@ def generate_joint_bar_plot(main_dir: str,
         
         # Accumulate metrics for bar plotting
         if task == "sc":
-            client_metrics.append(client_val_df['val_acc'].iloc[-1])  # Assuming you want the last epoch's data
+            client_metrics.append(client_val_df['val_acc'].iloc[-1]) 
             master_metrics.append(master_val_df['test_acc'].iloc[-1])
         elif task == "ner":
             client_metrics.append(client_val_df['val_f1'].iloc[-1])
@@ -378,22 +425,21 @@ def generate_joint_bar_plot(main_dir: str,
 if __name__ == "__main__":
     generate_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
                        dataset='sst2', 
-                       model='bert_for_sequence_classification',
+                       model='roberta_for_sequence_classification',
                        client_name="client_0",
-                       plot_name="multiplot_sst2_bert.png")
+                       plot_name="multiplot_sst2_roberta.png")
     
     generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
                        dataset='sst2', 
                        plot_data='client',
-                       model='bert_for_sequence_classification',
+                       model='roberta_for_sequence_classification',
                        client_name="client_0",
-                       plot_name="jointplot_sst2_bert.png")
+                       plot_name="jointplot_sst2_roberta.png")
     
     generate_joint_bar_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42',
                             dataset='sst2',
-                            model='bert_for_sequence_classification',
+                            model='roberta_for_sequence_classification',
                             plot_data='both',
                             client_name="client_0",
-                            plot_name="barplot_sst2_bert.png")
+                            plot_name="barplot_sst2_roberta.png")
     
-
