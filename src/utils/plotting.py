@@ -13,9 +13,8 @@ def accumulate_client_metrics(cfg: DictConfig, client_name: str, logs_path: str)
     num_epochs = cfg.sfl.num_epochs
     num_rounds = cfg.sfl.num_rounds
 
-    base_path = cfg.paths.client_log_path
-    client_dir = os.path.join(base_path, client_name)
-    
+    client_dir = os.path.join(logs_path, 'clients', client_name)
+
     # List all rounds for the client
     rounds = [d for d in os.listdir(client_dir) if os.path.isdir(os.path.join(client_dir, d))]
     rounds = rounds[:num_rounds]
