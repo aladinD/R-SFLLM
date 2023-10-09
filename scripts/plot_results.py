@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import os
 import yaml
 from omegaconf import OmegaConf, DictConfig
-from typing import List
+from typing import List, Dict
 
 
 def fetch_relevant_directories(main_dir: str, dataset: str, model: str) -> list:
@@ -424,193 +424,6 @@ def generate_joint_plot(main_dir: str,
         plt.savefig(os.path.join(main_dir, plot_name))
 
 
-# def generate_joint_multiplot(main_dir: str,
-#                              model: str,
-#                              sc_datasets: List[str],
-#                              ner_datasets: List[str],
-#                              plot_data: str = "client",
-#                              client_name="client_0",
-#                              plot_name="jointmultiplot.png"):
-#     """
-#     Generate a joint multiplot for all subfolders that match the given datasets and model.
-    
-#     Parameters:
-#     - main_dir: Main directory path.
-#     - model: Model name.
-#     - sc_datasets: List of SC dataset names.
-#     - ner_datasets: List of NER dataset names.
-#     - plot_data: A string which can be "client", "master", or "both" to decide which data to plot.
-#     - client_name: The name of the client.
-#     - plot_name: The name of the saved plot.
-    
-#     """
-#     # Model distinction
-#     base_model = model
-
-#     # Create a 2x2 subplot
-#     fig, axs = plt.subplots(2, 2, figsize=(20, 14))
-    
-#     # Get the list of subdirectories in main_dir
-#     subdirs = [os.path.join(main_dir, d) for d in os.listdir(main_dir) if os.path.isdir(os.path.join(main_dir, d))]
-    
-#     # For each dataset in SC datasets
-#     for idx, dataset in enumerate(sc_datasets):
-
-#         # Model assignment
-#         if base_model == 'roberta':
-#             model = 'roberta_for_sequence_classification'
-#         elif base_model == 'bert':
-#             model = 'bert_for_sequence_classification'
-
-#         # SC datasets are plotted in the top row
-#         row, col = 0, idx  
-        
-#         # For each subdirectory, generate the joint plot
-#         for subdir in subdirs:
-#             directories = fetch_relevant_directories(subdir, dataset, model)
-            
-#             if not directories:
-#                 continue
-            
-#             for directory in directories:
-
-#                 # Fetch the configuration for the current directory
-#                 config = fetch_configuration(directory)
-
-#                 # Handle relative paths
-#                 relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
-#                 relative_path = os.path.join(*relative_path_components[3:4])
-#                 relative_path = os.path.join(relative_path, 'logs/')  
-#                 config.paths.log_path = os.path.join(subdir, relative_path)
-
-#                 # Get scenario
-#                 try:
-#                     scenario = config.tags[-1] if "tags" in config else None
-#                     if not scenario:
-#                         with open(os.path.join(directory, "tags.log"), 'r') as file:
-#                             content = file.read()
-#                             tags = [tag.strip() for tag in content.strip("[]").split(",")]
-#                             scenario = tags[-1]
-#                 except Exception as e:
-#                     print(f"Error fetching scenario for directory {directory}: {e}")
-#                     continue
-
-#                 # Fetch metrics for the current directory
-#                 client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
-#                 master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
-
-#                 # Extracting task from the configuration
-#                 task = config.get("task_name", "")
-                    
-#                 # Plot client data based on the task
-#                 label_mapping = {
-#                     "None": "Baseline Performance without the Wireless Channel",
-#                     "no_jammer": "No Jamming, only Wireless Impairments",
-#                     "no_protection": "Adversarial Jamming without Protection",
-#                     "w_protection": "Adversarial Jamming with Protection",
-#                 }
-#                 label_scenario = label_mapping.get(scenario, scenario)
-
-#                 # Plot data
-#                 ax = axs[row][col]
-
-#                 if plot_data in ["client", "both"]:
-#                     ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{label_scenario}', linestyle='-', marker='o')
-         
-#                 if plot_data in ["master", "both"]:
-#                     ax.plot(master_val_df['epoch'], master_val_df['test_acc'], label=f'{label_scenario}', linestyle='--', marker='x')
-
-#                 # Set the axis parameters, legends, etc. for the subplot
-#                 ax = axs[row][col]
-#                 ax.set_ylim(0.4, 1)
-#                 ax.set_xlabel('Cumulative Epochs')
-#                 ax.set_ylabel('Accuracy')
-#                 ax.set_title(f'{dataset.upper()}')
-#                 ax.grid(True, alpha=0.5)
-#                 # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), fancybox=True, shadow=True, ncol=4)
-                
-
-#     # For each dataset in NER datasets
-#     for idx, dataset in enumerate(ner_datasets):
-
-#         # Model assignment
-#         if base_model == 'roberta':
-#             model = 'roberta_for_token_classification'
-#         elif base_model == 'bert':
-#             model = 'bert_for_token_classification'
-
-#         # NER datasets are plotted in the bottom row
-#         row, col = 1, idx  
-        
-#         # For each subdirectory, generate the joint plot
-#         for subdir in subdirs:
-#             directories = fetch_relevant_directories(subdir, dataset, model)
-            
-#             if not directories:
-#                 continue
-            
-#             for directory in directories:
-
-#                 # Fetch the configuration for the current directory
-#                 config = fetch_configuration(directory)
-
-#                 # Handle relative paths
-#                 relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
-#                 relative_path = os.path.join(*relative_path_components[3:4])
-#                 relative_path = os.path.join(relative_path, 'logs/')  
-#                 config.paths.log_path = os.path.join(subdir, relative_path)
-
-#                 # Get scenario
-#                 try:
-#                     scenario = config.tags[-1] if "tags" in config else None
-#                     if not scenario:
-#                         with open(os.path.join(directory, "tags.log"), 'r') as file:
-#                             content = file.read()
-#                             tags = [tag.strip() for tag in content.strip("[]").split(",")]
-#                             scenario = tags[-1]
-#                 except Exception as e:
-#                     print(f"Error fetching scenario for directory {directory}: {e}")
-#                     continue
-
-#                 # Fetch metrics for the current directory
-#                 client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
-#                 master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
-
-#                 # Extracting task from the configuration
-#                 task = config.get("task_name", "")
-                    
-#                 # Plot client data based on the task
-#                 label_mapping = {
-#                     "None": "Baseline Performance without the Wireless Channel",
-#                     "no_jammer": "No Jamming, only Wireless Impairments",
-#                     "no_protection": "Adversarial Jamming without Protection",
-#                     "w_protection": "Adversarial Jamming with Protection",
-#                 }
-#                 label_scenario = label_mapping.get(scenario, scenario)
-
-#                 # Plot data
-#                 ax = axs[row][col]
-
-#                 if plot_data in ["client", "both"]:
-#                     ax.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{label_scenario}', linestyle='-', marker='o')
-
-#                 if plot_data in ["master", "both"]:
-#                     ax.plot(master_val_df['epoch'], master_val_df['test_f1'], label=f'{label_scenario}', linestyle='--', marker='x')
-
-#                 # Set the axis parameters, legends, etc. for the subplot
-#                 ax = axs[row][col]
-#                 ax.set_ylim(0.4, 1) if dataset == "conll2003" else ax.set_ylim(0.05, 0.5)
-#                 ax.set_xlabel('Cumulative Epochs')
-#                 ax.set_ylabel('F1 Score')
-#                 ax.set_title(f'{dataset.upper()}')
-#                 ax.grid(True, alpha=0.5)
-
-#     # Set global title, layout, and save figure
-#     plt.tight_layout()
-#     plt.savefig(os.path.join(main_dir, plot_name))
-
-
-from typing import List, Dict
 
 def generate_joint_multiplot(main_dir: str,
                              base_model: str,
@@ -658,6 +471,9 @@ def generate_joint_multiplot(main_dir: str,
     # Get the list of subdirectories in main_dir
     subdirs: List[str] = [os.path.join(main_dir, d) for d in os.listdir(main_dir) if os.path.isdir(os.path.join(main_dir, d))]
 
+    # Initialize an empty set to store unique legend labels
+    legend_entries = {}
+
     # Function to handle plotting for both SC and NER datasets
     def plot_data_for_dataset(row: int, col: int, dataset: str, task: str):
         model = model_mapping[base_model][task]
@@ -699,18 +515,21 @@ def generate_joint_multiplot(main_dir: str,
                 ax = axs[row][col]
                 label_scenario = label_mapping.get(scenario, scenario)
 
+                label = f'{label_scenario}'
                 if plot_data in ["client", "both"]:
-                    ax.plot(client_val_df['epoch'], client_val_df[metric], label=f'{label_scenario}', linestyle='-', marker='o')
+                    line1, = ax.plot(client_val_df['epoch'], client_val_df[metric], label=f'{label_scenario}', linestyle='-', marker='o')
+                    legend_entries[label] = line1
+                
                 if plot_data in ["master", "both"]:
-                    ax.plot(master_val_df['epoch'], master_val_df[f'test_{metric}'], label=f'{label_scenario}', linestyle='--', marker='x')
+                    line2, = ax.plot(master_val_df['epoch'], master_val_df[f'test_{metric}'], label=f'{label_scenario}', linestyle='--', marker='x')
+                    legend_entries[label] = line2
 
                 # Set the axis parameters for the subplot
                 ax.set_ylim(0.4, 1) if task == 'sc' or dataset == "conll2003" else ax.set_ylim(0.05, 0.5)
-                ax.set_xlabel('Cumulative Epochs')
-                ax.set_ylabel(ylabel)
-                ax.set_title(f'{dataset.upper()}')
+                ax.set_xlabel('Cumulative Epochs', fontsize=14)
+                ax.set_ylabel(ylabel, fontsize=14)
+                ax.set_title(f'{dataset.upper()}',  fontsize=16)
                 ax.grid(True, alpha=0.5)
-                # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), fancybox=True, shadow=True, ncol=4)
 
     # Process SC datasets
     for idx, dataset in enumerate(sc_datasets):
@@ -720,12 +539,20 @@ def generate_joint_multiplot(main_dir: str,
     for idx, dataset in enumerate(ner_datasets):
         plot_data_for_dataset(1, idx, dataset, 'ner')
 
-    lines = [plt.Line2D([0], [0], label=desc) for scenario, desc in label_mapping.items()]
-    fig.legend(handles=lines, loc='lower center', ncol=len(label_mapping), fancybox=True, shadow=True)
+    fig.legend(handles=legend_entries.values(), 
+               labels=legend_entries.keys(), 
+               loc='lower center', 
+               ncol=len(legend_entries), 
+               fancybox=True, 
+               shadow=True,
+               fontsize=14)
+    
+    fig.suptitle('Performance Metrics for SC and NER NLP Tasks', fontsize=18, fontweight='bold')
+
 
     # Set global title, layout, and save figure
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.1)
+    plt.subplots_adjust(hspace=0.2, wspace=0.1, bottom=0.09)  
     plt.savefig(os.path.join(main_dir, plot_name))
 
 
