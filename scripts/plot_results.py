@@ -6,6 +6,7 @@ from src.utils.plotting import accumulate_client_metrics, accumulate_master_metr
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+# plt.rcParams["text.usetex"] = True
 import os
 import yaml
 from omegaconf import OmegaConf, DictConfig
@@ -478,7 +479,7 @@ def generate_joint_multiplot(main_dir: str,
     def plot_data_for_dataset(row: int, col: int, dataset: str, task: str):
         model = model_mapping[base_model][task]
         metric = 'acc' if task == 'sc' else 'f1'
-        ylabel = 'Accuracy' if task == 'sc' else 'F1 Score'
+        ylabel = r'Accuracy' if task == 'sc' else r'F1 Score'
         
         for subdir in subdirs:
             directories = fetch_relevant_directories(subdir, dataset, model)
@@ -526,7 +527,7 @@ def generate_joint_multiplot(main_dir: str,
 
                 # Set the axis parameters for the subplot
                 ax.set_ylim(0.4, 1) if task == 'sc' or dataset == "conll2003" else ax.set_ylim(0.05, 0.5)
-                ax.set_xlabel('Cumulative Epochs', fontsize=14)
+                ax.set_xlabel(r'Cumulative Epochs', fontsize=14)
                 ax.set_ylabel(ylabel, fontsize=14)
                 ax.set_title(f'{dataset.upper()}',  fontsize=16)
                 ax.grid(True, alpha=0.5)
@@ -547,7 +548,7 @@ def generate_joint_multiplot(main_dir: str,
                shadow=True,
                fontsize=14)
     
-    fig.suptitle('Performance Metrics for SC and NER NLP Tasks', fontsize=18, fontweight='bold')
+    fig.suptitle(r'Performance Metrics for SC and NER NLP Tasks', fontsize=18, fontweight='bold')
 
 
     # Set global title, layout, and save figure
