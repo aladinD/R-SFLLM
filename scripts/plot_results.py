@@ -477,7 +477,7 @@ def generate_joint_multiplot(main_dir: str,
     # Function to handle plotting for both SC and NER datasets
     def plot_data_for_dataset(row: int, col: int, dataset: str, task: str):
         model = model_mapping[base_model][task]
-        metric = 'val_acc' if task == 'sc' else 'val_f1'
+        metric = 'acc' if task == 'sc' else 'f1'
         ylabel = 'Accuracy' if task == 'sc' else 'F1 Score'
         
         for subdir in subdirs:
@@ -560,10 +560,10 @@ def generate_joint_multiplot(main_dir: str,
 if __name__ == "__main__":
 
     generate_joint_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/',
-                            base_model='roberta',
+                            base_model='bert',
                             sc_datasets=['sst2', 'mrpc'],
                             ner_datasets=['wnut_17', 'conll2003'],
-                            plot_data='client',
+                            plot_data='master',
                             client_name="client_0",
                             plot_name="jointmultiplot_roberta.png")
     
