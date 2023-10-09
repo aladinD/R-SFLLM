@@ -6,7 +6,6 @@ from src.utils.plotting import accumulate_client_metrics, accumulate_master_metr
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-# plt.rcParams["text.usetex"] = True
 import os
 import yaml
 from omegaconf import OmegaConf, DictConfig
@@ -518,7 +517,7 @@ def generate_joint_multiplot(main_dir: str,
 
                 label = f'{label_scenario}'
                 if plot_data in ["client", "both"]:
-                    line1, = ax.plot(client_val_df['epoch'], client_val_df[metric], label=f'{label_scenario}', linestyle='-', marker='o')
+                    line1, = ax.plot(client_val_df['epoch'], client_val_df[f'val_{metric}'], label=f'{label_scenario}', linestyle='-', marker='o')
                     legend_entries[label] = line1
                 
                 if plot_data in ["master", "both"]:
@@ -561,10 +560,10 @@ def generate_joint_multiplot(main_dir: str,
 if __name__ == "__main__":
 
     generate_joint_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/',
-                            base_model='bert',
+                            base_model='roberta',
                             sc_datasets=['sst2', 'mrpc'],
                             ner_datasets=['wnut_17', 'conll2003'],
-                            plot_data='master',
+                            plot_data='client',
                             client_name="client_0",
                             plot_name="jointmultiplot_roberta.png")
     
