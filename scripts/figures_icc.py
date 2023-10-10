@@ -198,8 +198,9 @@ def training_curves_barplot(main_dir: str,
         )
         ddm = {s: (x, m) for s, x, m in zip(scenarios_master, xaxes_master, metrics_master)}
         metrics_all_master.append(ddm)
-
-    f_client, ax_client = plt.subplots(len(datasets_all), len(base_models), figsize=(20, 14))
+    
+    # setup everything for clients and master figures
+    f_client, ax_client = plt.subplots(len(datasets_all) * len(base_models), 1, figsize=(20, 14))
     ax_client = ax_client.flatten()
     
     f_master, ax_master = plt.subplots(len(datasets_all), len(base_models), figsize=(20, 14))
@@ -215,36 +216,29 @@ def training_curves_barplot(main_dir: str,
         ylabels.append(lb)
     
     for idx, (tmp, a) in enumerate(zip(metrics_all_client, ax_client)):
-        
+        # we iterate through the label mappings and get the 
+        # required data otherwise the legends will not be synchronized
         for lbl, lbl_map in label_mapping.items():
             xax, mt = tmp[lbl]
             a.plot(xax, mt, linestyle='-', marker='o', color=colormap[lbl], label=lbl_map)
-        # for k, v in tmp.items():
-        #     print(k, colormap[k])
-        #     a.plot(v[0], v[1], linestyle='-', marker='o', color=colormap[k], label=label_mapping[k])
-            # a.set_ylim(*ylims[idx])
         a.set_xlabel(r'Cumulative Epochs', fontsize=14)
         a.set_ylabel(ylabels[idx], fontsize=14)
         a.set_title(f'{dsets_models[idx][0].upper()} {dsets_models[idx][1].upper()}', fontsize=16)
+        # a.set_box_aspect()
         a.grid(True)
-        # a.legend()
 
     for idx, (tmp, a) in enumerate(zip(metrics_all_master, ax_master)):
-        for k, v in tmp.items():
-            print(k, colormap[k])
-            a.bar(range(len(scenarios)), v[1][-1], label='Client Model', alpha=0.8)
-            # a.plot(v[0], v[1], linestyle='-', marker='o', color=colormap[k])
-            # a.set_ylim(*ylims[idx])
-            # a.set_xlabel(r'Cumulative Epochs', fontsize=14)
-            # a.set_ylabel(ylabels[idx], fontsize=14)
-            a.set_title(f'{dsets_models[idx][0].upper()} {dsets_models[idx][1].upper()}', fontsize=16)
-            # a.grid(True)
+        heights = []
+        for lbl, lbl_map in label_mapping.items():
+            xax, mt = tmp[lbl]
+            heights.append(mt[-1])
+        a.bar(x=list(range(len(scenarios))), height=heights, label='Global Model', alpha=0.8)
+        a.set_title(f'{dsets_models[idx][0].upper()} {dsets_models[idx][1].upper()}', fontsize=16)
     
     f_client.tight_layout()
-    f_client.subplots_adjust(bottom=0.1, hspace=0.2)
+    f_client.subplots_adjust(bottom=0.1, hspace=0.4)
     f_client.legend(
         list(label_mapping.values()),
-        # bbox_to_anchor=(0.5, 0.00), 
         loc='lower center',
         ncol=len(scenarios), 
         fancybox=True, 
@@ -252,7 +246,7 @@ def training_curves_barplot(main_dir: str,
         fontsize=16
         )
 
-    f_client.savefig(fname=os.path.join(save_dir, f"{plot_name}_plot.png"))
+    f_client.savefig(fname=os.path.join(save_dir, f"{plot_name}_plot.pdf"))
     f_master.savefig(fname=os.path.join(save_dir, f"{plot_name}_bar.png"))
 
     
@@ -264,4 +258,4 @@ if __name__ == "__main__":
                     plot_data='client',
                     client_name="client_0",
                     save_dir = "./",
-                    plot_name="figs_icc")
+                    plot_name="figs_icc_single_col")
