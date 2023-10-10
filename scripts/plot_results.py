@@ -431,6 +431,7 @@ def generate_joint_multiplot(main_dir: str,
                              ner_datasets: List[str],
                              plot_data: str = "client",
                              client_name: str = "client_0",
+                             save_dir: str = "./",
                              plot_name: str = "jointmultiplot.png"):
     """
     Generate a joint multiplot for all subfolders that match the given datasets and model.
@@ -525,7 +526,7 @@ def generate_joint_multiplot(main_dir: str,
                     legend_entries[label] = line2
 
                 # Set the axis parameters for the subplot
-                ax.set_ylim(0.4, 1) if task == 'sc' or dataset == "conll2003" else ax.set_ylim(0.05, 0.5)
+                ax.set_ylim(0., 1) if task == 'sc' or dataset == "conll2003" else ax.set_ylim(0.05, 0.5)
                 ax.set_xlabel(r'Cumulative Epochs', fontsize=14)
                 ax.set_ylabel(ylabel, fontsize=14)
                 ax.set_title(f'{dataset.upper()}',  fontsize=16)
@@ -553,19 +554,19 @@ def generate_joint_multiplot(main_dir: str,
     # Set global title, layout, and save figure
     plt.tight_layout()
     plt.subplots_adjust(hspace=0.2, wspace=0.1, bottom=0.09)  
-    plt.savefig(os.path.join(main_dir, plot_name))
+    plt.savefig(os.path.join(save_dir, plot_name))
 
 
 
 if __name__ == "__main__":
 
-    generate_joint_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/',
-                            base_model='roberta',
+    generate_joint_multiplot(main_dir='/home/shared/plotting',
+                            base_model='bert',
                             sc_datasets=['sst2', 'mrpc'],
                             ner_datasets=['wnut_17', 'conll2003'],
                             plot_data='client',
                             client_name="client_0",
-                            plot_name="jointmultiplot_roberta.png")
+                            plot_name="joint_multiplot_bert_.png")
     
     # generate_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
     #                    dataset='sst2', 

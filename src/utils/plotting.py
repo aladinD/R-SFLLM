@@ -18,7 +18,8 @@ def accumulate_client_metrics(cfg: DictConfig, client_name: str, logs_path: str)
     # List all rounds for the client
     rounds = [d for d in os.listdir(client_dir) if os.path.isdir(os.path.join(client_dir, d))]
     rounds = rounds[:num_rounds]
-    
+    rounds.sort(key=lambda x: int(x.split("_")[-1])) # sort rounds ascendingly
+
     all_train_metrics = []
     all_val_metrics = []
     for idx, r in enumerate(rounds):
@@ -37,7 +38,7 @@ def accumulate_client_metrics(cfg: DictConfig, client_name: str, logs_path: str)
                 train_metrics = df[['epoch', 'train_loss', 'train_f1', 'train_precision', 'train_recall']]
                 val_metrics = df[['epoch', 'val_loss', 'val_f1', 'val_precision', 'val_recall']]
             else:
-                print("ERROR")
+                raise ValueError("Task should be one of ner, sc!")
             
             all_train_metrics.append(train_metrics)
             all_val_metrics.append(val_metrics)
@@ -84,6 +85,7 @@ def accumulate_master_metrics(cfg: DictConfig, logs_path: str) -> None:
     # List all rounds for the master model
     rounds = [d for d in os.listdir(train_dir) if os.path.isdir(os.path.join(train_dir, d))]
     rounds = rounds[:num_rounds]
+    rounds.sort(key=lambda x: int(x.split("_")[-1])) # sort rounds ascendingly
     
     all_train_metrics = []
     all_val_metrics = []
