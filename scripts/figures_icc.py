@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import os
 import yaml
 from omegaconf import OmegaConf, DictConfig
-from typing import List, Dict
+from typing import List, Dict, Literal
 import numpy as np
+import itertools
 
 def fetch_relevant_directories(main_dir: str, dataset: str, model: str) -> list:
     """
@@ -63,52 +64,14 @@ def fetch_configuration(directory: str) -> DictConfig:
     return OmegaConf.create(config)
 
 
-def training_curves(main_dir: str,
-                    base_model: str,
-                    sc_datasets: List[str],
-                    ner_datasets: List[str],
-                    plot_data: str = "client",
-                    client_name: str = "client_0",
-                    save_dir: str = ".",
-                    plot_name: str = "jointmultiplot.png"
-    ):
-    """
-    Generate a joint multiplot for all subfolders that match the given datasets and model.
-    
-    Parameters:
-    - main_dir: Main directory path.
-    - base_model: Base model name (e.g., 'roberta' or 'bert').
-    - sc_datasets: List of SC dataset names.
-    - ner_datasets: List of NER dataset names.
-    - plot_data: A string which can be "client", "master", or "both" to decide which data to plot.
-    - client_name: The name of the client.
-    - plot_name: The name of the saved plot.
-    """
-    
-    # Model Mapping
-    model_mapping: Dict[str, Dict[str, str]] = {
-        'roberta': {
-            'sc': 'roberta_for_sequence_classification',
-            'ner': 'roberta_for_token_classification'
-        },
-        'bert': {
-            'sc': 'bert_for_sequence_classification',
-            'ner': 'bert_for_token_classification'
-        }
-    }
-    
-    # Label Mapping
-    label_mapping: Dict[str, str] = {
-        "None": "Baseline Performance without the Wireless Channel",
-        "no_jammer": "No Jamming, only Wireless Impairments",
-        "no_protection": "Adversarial Jamming without Protection",
-        "w_protection": "Adversarial Jamming with Protection"
-    }
-
-    subdirs: List[str] = [os.path.join(main_dir, d) for d in os.listdir(main_dir) if os.path.isdir(os.path.join(main_dir, d))]
-        
-    # Function to handle plotting for both SC and NER datasets
-    def fetch_metrics_for_dataset(dataset: str, task: str):
+def fetch_metrics_for_dataset(
+        dataset: str, 
+        task: str,
+        subdirs: list[str],
+        base_model: str,
+        model_mapping: dict[str, list[str]],
+        client_name: str = "client_0",
+        plot_data: Literal["client", "master", "both"] = "client"):
         model = model_mapping[base_model][task]
         metric_name = 'acc' if task == 'sc' else 'f1'
         
@@ -155,57 +118,150 @@ def training_curves(main_dir: str,
                 metrics.append(metric.to_numpy())
         return scenarios, xaxes, metrics
 
-    # Process SC datasets
-    sc_metrics = []
-    for dataset in sc_datasets:
-        scenarios, xaxes, metrics = fetch_metrics_for_dataset(dataset, 'sc')
-        print(scenarios)
-        d = {s: (x, m) for s, x, m in zip(scenarios, xaxes, metrics)}
-        sc_metrics.append(d)
-    
-    ner_metrics = []
-    # Process NER datasets
-    for dataset in ner_datasets:
-        scenarios, xaxes, metrics = fetch_metrics_for_dataset(dataset, 'ner')
-        print(scenarios)
-        d = {s: (x, m) for s, x, m in zip(scenarios, xaxes, metrics)}
-        ner_metrics.append(d)
-    
-    f, ax = plt.subplots(2, 2, figsize=(20, 14))
-    ax = ax.flatten()
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(scenarios)]
-    colormap = {k: v for k, v in zip(scenarios, colors)}
-    ylims = [[0.4, 1.], [0.5, 1.], [0., .5], [0., 1.]]
-    ylabels = ["Accuracy"]*2 + ["F1 Score"]*2
 
-    datasets_all = sc_datasets + ner_datasets
-    metrics_all = sc_metrics + ner_metrics
-    for idx, (tmp, a) in enumerate(zip(metrics_all, ax)):
-        for k, v in tmp.items():
-            a.plot(v[0], v[1], linestyle='-', marker='o', color=colormap[k])
-            a.set_ylim(*ylims[idx])
-            a.set_xlabel(r'Cumulative Epochs', fontsize=14)
-            a.set_ylabel(ylabels[idx], fontsize=14)
-            a.set_title(f'{datasets_all[idx].upper()}', fontsize=16)
-            a.grid(True, alpha=0.5)
+def training_curves_barplot(main_dir: str,
+                    base_models: str | List[str],
+                    sc_datasets: str | List[str],
+                    ner_datasets: str | List[str],
+                    plot_data: str = "client",
+                    client_name: str = "client_0",
+                    save_dir: str = ".",
+                    plot_name: str = "jointmultiplot.png"
+    ):
+    """
+    Generate a joint multiplot for all subfolders that match the given datasets and model.
     
-    f.legend(
-        [label_mapping[scen] for scen in scenarios],
-        loc='lower center', 
+    Parameters:
+    - main_dir: Main directory path.
+    - base_model: Base model name (e.g., 'roberta' or 'bert').
+    - sc_datasets: List of SC dataset names.
+    - ner_datasets: List of NER dataset names.
+    - plot_data: A string which can be "client", "master", or "both" to decide which data to plot.
+    - client_name: The name of the client.
+    - plot_name: The name of the saved plot.
+    """
+    
+    # Model Mapping
+    model_mapping: Dict[str, Dict[str, str]] = {
+        'roberta': {
+            'sc': 'roberta_for_sequence_classification',
+            'ner': 'roberta_for_token_classification'
+        },
+        'bert': {
+            'sc': 'bert_for_sequence_classification',
+            'ner': 'bert_for_token_classification'
+        }
+    }
+    
+    # Label Mapping
+    label_mapping: Dict[str, str] = {
+        "None": "No Wireless Channel",
+        "no_jammer": "No Attack, only Wireless Impairments",
+        "w_protection": "Adversarial Attack with Protection",
+        "no_protection": "Adversarial Attack without Protection",
+    }
+
+    subdirs: List[str] = [os.path.join(main_dir, d) for d in os.listdir(main_dir) if os.path.isdir(os.path.join(main_dir, d))]
+
+    if isinstance(sc_datasets, str):
+        sc_datasets = [sc_datasets]
+    if isinstance(ner_datasets, str):
+        ner_datasets = [ner_datasets]
+    
+    if isinstance(base_models, str):
+        base_models = [base_models]
+    
+    datasets_all = sc_datasets + ner_datasets
+    dsets_models = list(itertools.product(datasets_all, base_models))
+
+    metrics_all_client, metrics_all_master = [], []
+    for dm in dsets_models:
+        dset, mod = dm
+        tsk = "sc" if dset in sc_datasets else "ner"
+        
+        scenarios, xaxes, metrics = fetch_metrics_for_dataset(
+            dataset=dset, task=tsk, subdirs=subdirs, 
+            base_model=mod, 
+            model_mapping=model_mapping, 
+            client_name=client_name, 
+            plot_data="client"
+        )
+        d = {s: (x, m) for s, x, m in zip(scenarios, xaxes, metrics)}
+        metrics_all_client.append(d)
+        print(dm, tsk, scenarios)
+        scenarios_master, xaxes_master, metrics_master = fetch_metrics_for_dataset(
+            dataset=dset, task=tsk, subdirs=subdirs, 
+            base_model=mod, 
+            model_mapping=model_mapping, 
+            client_name=client_name, 
+            plot_data="master"
+        )
+        ddm = {s: (x, m) for s, x, m in zip(scenarios_master, xaxes_master, metrics_master)}
+        metrics_all_master.append(ddm)
+
+    f_client, ax_client = plt.subplots(len(datasets_all), len(base_models), figsize=(20, 14))
+    ax_client = ax_client.flatten()
+    
+    f_master, ax_master = plt.subplots(len(datasets_all), len(base_models), figsize=(20, 14))
+    ax_master = ax_master.flatten()
+    
+    clrs = plt.rcParams["axes.prop_cycle"].by_key()["color"][:len(scenarios)]
+    colors = [clrs[i] for i in [1, 0, 3, 2]] # hacky way to make green and blue first and then yellow and red
+    colormap = {k: v for k, v in zip(scenarios, colors)}
+
+    ylabels = []
+    for d in dsets_models:
+        lb = "Accuracy" if d[0] in sc_datasets else "F1 Score"
+        ylabels.append(lb)
+    
+    for idx, (tmp, a) in enumerate(zip(metrics_all_client, ax_client)):
+        
+        for lbl, lbl_map in label_mapping.items():
+            xax, mt = tmp[lbl]
+            a.plot(xax, mt, linestyle='-', marker='o', color=colormap[lbl], label=lbl_map)
+        # for k, v in tmp.items():
+        #     print(k, colormap[k])
+        #     a.plot(v[0], v[1], linestyle='-', marker='o', color=colormap[k], label=label_mapping[k])
+            # a.set_ylim(*ylims[idx])
+        a.set_xlabel(r'Cumulative Epochs', fontsize=14)
+        a.set_ylabel(ylabels[idx], fontsize=14)
+        a.set_title(f'{dsets_models[idx][0].upper()} {dsets_models[idx][1].upper()}', fontsize=16)
+        a.grid(True)
+        # a.legend()
+
+    for idx, (tmp, a) in enumerate(zip(metrics_all_master, ax_master)):
+        for k, v in tmp.items():
+            print(k, colormap[k])
+            a.bar(range(len(scenarios)), v[1][-1], label='Client Model', alpha=0.8)
+            # a.plot(v[0], v[1], linestyle='-', marker='o', color=colormap[k])
+            # a.set_ylim(*ylims[idx])
+            # a.set_xlabel(r'Cumulative Epochs', fontsize=14)
+            # a.set_ylabel(ylabels[idx], fontsize=14)
+            a.set_title(f'{dsets_models[idx][0].upper()} {dsets_models[idx][1].upper()}', fontsize=16)
+            # a.grid(True)
+    
+    f_client.tight_layout()
+    f_client.subplots_adjust(bottom=0.1, hspace=0.2)
+    f_client.legend(
+        list(label_mapping.values()),
+        # bbox_to_anchor=(0.5, 0.00), 
+        loc='lower center',
         ncol=len(scenarios), 
         fancybox=True, 
         shadow=True,
-        fontsize=14
+        fontsize=16
         )
-    
-    f.savefig(fname=os.path.join(save_dir, plot_name))
+
+    f_client.savefig(fname=os.path.join(save_dir, f"{plot_name}_plot.png"))
+    f_master.savefig(fname=os.path.join(save_dir, f"{plot_name}_bar.png"))
+
     
 if __name__ == "__main__":
-    training_curves(main_dir="/home/shared/plotting/", 
-                    base_model='bert',
-                    sc_datasets=['sst2', 'mrpc'],
-                    ner_datasets=['wnut_17', 'conll2003'],
+    training_curves_barplot(main_dir="/home/shared/plotting/", 
+                    base_models=['bert', 'roberta'],
+                    sc_datasets=['sst2'],
+                    ner_datasets=['conll2003'],
                     plot_data='client',
                     client_name="client_0",
                     save_dir = "./",
-                    plot_name="joint_multiplot_bert.png")
+                    plot_name="figs_icc")
