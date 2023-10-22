@@ -16,6 +16,9 @@ from transformers.models.bert.modeling_bert import (BertEmbeddings, BertEncoder,
                                                    BertPooler, BertPreTrainedModel, TokenClassifierOutput)
 from transformers import get_linear_schedule_with_warmup
 
+import hydra
+from src.models.components.wireless_module import WirelessModule
+
 
 class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
     """
@@ -51,7 +54,12 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
 
         # Assign noise
         # this is the communications mse
+        self.sfl_config = None
+        self.noise_mode = None 
         self.add_noise: Optional[float] = None
+
+        # Identifies the correct MSE value to be added to the current user
+        self.user_id = None
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -146,12 +154,29 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
             past_key_values_length=past_key_values_length,
         )
 
-        # Add noise to the embedding output
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+        # Conditionally add noise
+        if self.noise_mode == 'per_batch': 
+            print("PER BATCH")
+            has_wireless = self.sfl_config.get("wireless", False)
+            if has_wireless:
+                wireless: Optional[WirelessModule] = hydra.utils.instantiate(self.sfl_config.wireless)
+                mses = wireless()
+                self.add_noise = mses[self.user_id] # need to figure this one out
+                print("MSE : ", mses[self.user_id])
+                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                embedding_output += noise
+
+        elif self.noise_mode == 'per_round' and self.add_noise is not None:
+            print("PER ROUND")
+            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
             embedding_output += noise
-        else:
-            pass
+
+        # # Add noise to the embedding output
+        # if self.add_noise is not None:
+        #     noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+        #     embedding_output += noise
+        # else:
+        #     pass
 
         encoder_outputs = self.encoder(
             embedding_output,

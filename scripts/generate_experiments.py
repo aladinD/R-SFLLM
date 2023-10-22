@@ -16,7 +16,7 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
         #     "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         # }, 
         "sc": {
-            "datamodule": ["sst2.yaml", "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"],
+            "datamodule": ["sst2.yaml"], # , "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"],
             "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
             "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         }
@@ -68,7 +68,6 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
                 f.write("# @package _global_ \n")
                 OmegaConf.save(config=conf, f=f)
             print(f"Generating experiment: {exp_name}")
-
 
 
 if __name__ == "__main__":

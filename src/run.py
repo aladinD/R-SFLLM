@@ -39,6 +39,9 @@ def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool 
     """
     Train and save a client model seperately in a sequential or parallel job.
     """
+    # Assign user id
+    client.model.user_id = client.id
+
     if parallel:
         # hacky way to train on gpus 4, 5, 6, ..., num_clients + 4
         cfg.trainer.devices = [client.id + dev_offset]
@@ -132,7 +135,9 @@ def main(cfg: DictConfig):
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
     model.num_classes = model_cfg.num_labels
     model.init_metrics()
+    model.noise_mode = cfg.model.noise_mode
     model.add_noise = False
+    model.sfl_config = cfg
 
     # Set the max epochs for training according to sfl!
     cfg.trainer.max_epochs = cfg.sfl.num_epochs
