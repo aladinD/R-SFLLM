@@ -247,3 +247,73 @@ class MNLIDataModule(GLUEDataModuleBase):
         attention_mask = torch.tensor(encodings['attention_mask'])
         
         return torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
+    
+
+class COLADataModule(GLUEDataModuleBase):
+    """
+    LightningDataModule Class for the COLA dataset. 
+    """
+    def setup(self, stage: str = None) -> None:
+        """
+        Preprocesses the loaded dataset.
+        """
+        # Train/val split
+        self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["validation"]
+
+        # Truncation
+        if self.truncate is not None:
+            self.train_dataset = self._truncate(self.train_dataset)
+            self.val_dataset = self._truncate(self.val_dataset)
+
+        # Tokenization
+        self.train_dataset = self._tokenize(self.train_dataset)
+        self.val_dataset = self._tokenize(self.val_dataset)
+
+
+    def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
+        """
+        Tokenizes the dataset.
+        """
+        tokenizer = AutoTokenizer.from_pretrained(self.model_type)
+        encodings = tokenizer(dataset["sentence"], truncation=True, padding=True)
+        labels = torch.tensor(dataset["label"], dtype=torch.long)
+        input_ids = torch.tensor(encodings['input_ids'])
+        attention_mask = torch.tensor(encodings['attention_mask'])
+        dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
+
+        return dataset
+    
+
+class RTEDataModule(GLUEDataModuleBase):
+    """
+    LightningDataModule Class for the RTE dataset. 
+    """
+    def setup(self, stage: str = None) -> None:
+        """
+        Preprocesses the loaded dataset.
+        """
+        # Train/val split
+        self.train_dataset, self.val_dataset = self.dataset["train"], self.dataset["validation"]
+
+        # Truncation
+        if self.truncate is not None:
+            self.train_dataset = self._truncate(self.train_dataset)
+            self.val_dataset = self._truncate(self.val_dataset)
+
+        # Tokenization
+        self.train_dataset = self._tokenize(self.train_dataset)
+        self.val_dataset = self._tokenize(self.val_dataset)
+
+
+    def _tokenize(self, dataset) -> torch.utils.data.TensorDataset:
+        """
+        Tokenizes the dataset.
+        """
+        tokenizer = AutoTokenizer.from_pretrained(self.model_type)
+        encodings = tokenizer(dataset["sentence1"], dataset["sentence2"], truncation=True, padding=True)
+        labels = torch.tensor(dataset["label"], dtype=torch.long)
+        input_ids = torch.tensor(encodings['input_ids'])
+        attention_mask = torch.tensor(encodings['attention_mask'])
+        dataset = torch.utils.data.TensorDataset(input_ids, attention_mask, labels)
+
+        return dataset
