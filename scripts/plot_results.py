@@ -560,19 +560,19 @@ def generate_joint_multiplot(main_dir: str,
 
 if __name__ == "__main__":
 
-    generate_joint_multiplot(main_dir='/home/shared/plotting',
-                            base_model='bert',
-                            sc_datasets=['sst2', 'mrpc'],
-                            ner_datasets=['wnut_17', 'conll2003'],
-                            plot_data='client',
-                            client_name="client_0",
-                            plot_name="joint_multiplot_bert_.png")
+    # generate_joint_multiplot(main_dir='/home/shared/plotting',
+    #                         base_model='bert',
+    #                         sc_datasets=['sst2', 'mrpc'],
+    #                         ner_datasets=['wnut_17', 'conll2003'],
+    #                         plot_data='client',
+    #                         client_name="client_0",
+    #                         plot_name="joint_multiplot_bert_.png")
     
-    # generate_multiplot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
-    #                    dataset='sst2', 
-    #                    model='roberta_for_sequence_classification',
-    #                    client_name="client_0",
-    #                    plot_name="multiplot_sst2_roberta.png")
+    generate_multiplot(main_dir='/home/aladin/sfl_training/resilient_sfl/logs/sc/multiruns/2023-10-05_15-15-53', 
+                       dataset='qnli', 
+                       model='roberta_for_sequence_classification',
+                       client_name="client_0",
+                       plot_name="multiplot_qnli_roberta.png")
     
     # generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
     #                    dataset='sst2', 
