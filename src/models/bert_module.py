@@ -19,6 +19,8 @@ from transformers import get_linear_schedule_with_warmup
 import hydra
 from src.models.components.wireless_module import WirelessModule
 
+import numpy as np
+
 
 class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
     """
@@ -52,17 +54,28 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
         # Classes params
         self.num_classes = None
 
-        # Assign noise
-        # this is the communications mse
-        self.sfl_config = None
-        self.noise_mode = None 
+        # Assign noise per round
         self.add_noise: Optional[float] = None
+        self.noise_mode = None 
 
         # Identifies the correct MSE value to be added to the current user
         self.user_id = None
 
+        # Identifies the current batch, epoch and number of batches
+        self.batch_index = 0
+        self.current_train_epoch = 0
+        self.num_batches = 0
+
+        # Identifies the current global round
+        self.current_round = None
+
         # Initialize weights and apply final processing
         self.post_init()
+
+
+    def load_mses(self, mse_filepath: str):
+        """Loads the MSE file."""
+        self.all_mses = np.load(mse_filepath, allow_pickle=True)
 
 
     def forward(
@@ -156,22 +169,40 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
 
         # Conditionally add noise
         if self.noise_mode == 'per_batch': 
-            print("PER BATCH")
-            has_wireless = self.sfl_config.get("wireless", False)
-            if has_wireless:
-                wireless: Optional[WirelessModule] = hydra.utils.instantiate(self.sfl_config.wireless)
-                mses = wireless()
-                self.add_noise = mses[self.user_id] # need to figure this one out
-                print("MSE : ", mses[self.user_id])
-                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-                embedding_output += noise
+            
+            # current_mse = self.all_mses[self.batch_index][self.user_id]
+            index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+            current_mse = self.all_mses[index][self.user_id]
 
-        elif self.noise_mode == 'per_round' and self.add_noise is not None:
-            print("PER ROUND")
+            # DEBUG
+            print("PER BATCH")
+            print("BATCH N0: ", self.batch_index)
+            print("CURRENT EPOCH: ", self.current_train_epoch)
+            print("CURRENT ROUND: ", self.current_round)
+            print("NUM BATCHES: ", self.num_batches)
+            print("BATCH INDEX: ", index)
+            print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+            self.add_noise = current_mse
             noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
             embedding_output += noise
 
-        # # Add noise to the embedding output
+
+        elif self.noise_mode == 'per_round' and self.add_noise is not None:
+
+            # DEBUG
+            # print("PER ROUND")
+            # print("BATCH N0: ", self.batch_index)
+            # print("CURRENT EPOCH: ", self.current_train_epoch)
+            # print("CURRENT ROUND: ", self.current_round)
+            # print("NUM BATCHES: ", self.num_batches)
+            # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+            # print("BATCH INDEX: ", index)
+
+            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+            embedding_output += noise
+
+        # # Add noise to the embedding output (ORIGINAL)
         # if self.add_noise is not None:
         #     noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
         #     embedding_output += noise
@@ -256,6 +287,11 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
         
 
     def training_step(self, batch: Any, batch_idx) -> torch.Tensor:
+        # Metrics tracking for noise
+        self.batch_index = batch_idx
+        self.current_train_epoch = self.trainer.current_epoch
+        self.num_batches = len(self.trainer.train_dataloader)
+
         inputs = {
             "input_ids": batch[0],
             "attention_mask": batch[1],
@@ -368,12 +404,28 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
         # Classes params
         self.num_classes = None
 
-        # Assign noise
-        # this is the communications mse
+        # Assign noise per round
         self.add_noise: Optional[float] = None
+        self.noise_mode = None 
+
+        # Identifies the correct MSE value to be added to the current user
+        self.user_id = None
+
+        # Identifies the current batch, epoch and number of batches
+        self.batch_index = 0
+        self.current_train_epoch = 0
+        self.num_batches = 0
+
+        # Identifies the current global round
+        self.current_round = None
 
         # Initialize weights and apply final processing
         self.post_init()
+
+
+    def load_mses(self, mse_filepath: str):
+        """Loads the MSE file."""
+        self.all_mses = np.load(mse_filepath, allow_pickle=True)
 
 
     def forward(
@@ -464,12 +516,47 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
             past_key_values_length=past_key_values_length,
         )
 
-        # Add noise to the embedding output
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+        # Conditionally add noise
+        if self.noise_mode == 'per_batch': 
+            
+            # current_mse = self.all_mses[self.batch_index][self.user_id]
+            index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+            current_mse = self.all_mses[index][self.user_id]
+
+            # DEBUG
+            # print("PER BATCH")
+            # print("BATCH N0: ", self.batch_index)
+            # print("CURRENT EPOCH: ", self.current_train_epoch)
+            # print("CURRENT ROUND: ", self.current_round)
+            # print("NUM BATCHES: ", self.num_batches)
+            # print("BATCH INDEX: ", index)
+            # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+            self.add_noise = current_mse
+            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
             embedding_output += noise
-        else:
-            pass
+
+
+        elif self.noise_mode == 'per_round' and self.add_noise is not None:
+
+            # DEBUG
+            # print("PER ROUND")
+            # print("BATCH N0: ", self.batch_index)
+            # print("CURRENT EPOCH: ", self.current_train_epoch)
+            # print("CURRENT ROUND: ", self.current_round)
+            # print("NUM BATCHES: ", self.num_batches)
+            # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+            # print("BATCH INDEX: ", index)
+
+            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+            embedding_output += noise
+
+        # # Add noise to the embedding output (ORIGINAL)
+        # if self.add_noise is not None:
+        #     noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+        #     embedding_output += noise
+        # else:
+        #     pass
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -546,6 +633,11 @@ class BERTForTokenClassificationModule(BertPreTrainedModel, LightningModule):
         
 
     def training_step(self, batch: Any, batch_idx) -> torch.Tensor:
+        # Metrics tracking for noise
+        self.batch_index = batch_idx
+        self.current_train_epoch = self.trainer.current_epoch
+        self.num_batches = len(self.trainer.train_dataloader)
+
         inputs = {
             "input_ids": batch[0],
             "attention_mask": batch[1],
@@ -711,12 +803,28 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
         # Classes params
         self.num_classes = None
 
-        # Assign noise
-        # this is the communications mse
+        # Assign noise per round
         self.add_noise: Optional[float] = None
+        self.noise_mode = None 
+
+        # Identifies the correct MSE value to be added to the current user
+        self.user_id = None
+
+        # Identifies the current batch, epoch and number of batches
+        self.batch_index = 0
+        self.current_train_epoch = 0
+        self.num_batches = 0
+
+        # Identifies the current global round
+        self.current_round = None
 
         # Initialize weights and apply final processing
         self.post_init()
+
+
+    def load_mses(self, mse_filepath: str):
+        """Loads the MSE file."""
+        self.all_mses = np.load(mse_filepath, allow_pickle=True)
 
 
     def forward(
@@ -812,12 +920,47 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
             past_key_values_length=past_key_values_length,
         )
 
-        # Add noise to the embedding output
-        if self.add_noise is not None:
-            noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+        # Conditionally add noise
+        if self.noise_mode == 'per_batch': 
+            
+            # current_mse = self.all_mses[self.batch_index][self.user_id]
+            index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+            current_mse = self.all_mses[index][self.user_id]
+
+            # DEBUG
+            # print("PER BATCH")
+            # print("BATCH N0: ", self.batch_index)
+            # print("CURRENT EPOCH: ", self.current_train_epoch)
+            # print("CURRENT ROUND: ", self.current_round)
+            # print("NUM BATCHES: ", self.num_batches)
+            # print("BATCH INDEX: ", index)
+            # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+            self.add_noise = current_mse
+            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
             embedding_output += noise
-        else:
-            pass
+
+
+        elif self.noise_mode == 'per_round' and self.add_noise is not None:
+
+            # DEBUG
+            # print("PER ROUND")
+            # print("BATCH N0: ", self.batch_index)
+            # print("CURRENT EPOCH: ", self.current_train_epoch)
+            # print("CURRENT ROUND: ", self.current_round)
+            # print("NUM BATCHES: ", self.num_batches)
+            # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+            # print("BATCH INDEX: ", index)
+
+            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+            embedding_output += noise
+
+        # # Add noise to the embedding output (ORIGINAL)
+        # if self.add_noise is not None:
+        #     noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+        #     embedding_output += noise
+        # else:
+        #     pass
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -892,6 +1035,11 @@ class BERTForQuestionAnsweringModule(BertPreTrainedModel, LightningModule):
         
 
     def training_step(self, batch: Any, batch_idx) -> torch.Tensor:
+        # Metrics tracking for noise
+        self.batch_index = batch_idx
+        self.current_train_epoch = self.trainer.current_epoch
+        self.num_batches = len(self.trainer.train_dataloader)
+
         tensor_data, contexts = batch
         input_ids, attention_mask, start_positions, end_positions = tensor_data
         contexts = list(contexts)

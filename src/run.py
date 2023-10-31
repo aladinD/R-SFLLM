@@ -34,6 +34,8 @@ torch.backends.cudnn.benchmark = False
 random.seed(seed)
 np.random.seed(seed)
 
+MSE_FILEPATH = '/home/aladin/sfl_training/resilient_sfl/all_mses_np_baseline.npy'
+NOISE_MODE = "per_batch"
 
 def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 3):
     """
@@ -41,6 +43,9 @@ def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool 
     """
     # Assign user id
     client.model.user_id = client.id
+
+    # Assign current round
+    client.model.current_round = r
 
     if parallel:
         # hacky way to train on gpus 4, 5, 6, ..., num_clients + 4
@@ -135,13 +140,14 @@ def main(cfg: DictConfig):
     model.scheduler_training_steps = cfg.sfl.num_epochs * len(train_dls[0])
     model.num_classes = model_cfg.num_labels
     model.init_metrics()
-    model.noise_mode = cfg.model.noise_mode
     model.add_noise = False
-    model.sfl_config = cfg
 
-    # Set the max epochs for training according to sfl!
-    cfg.trainer.max_epochs = cfg.sfl.num_epochs
+    # Noise mode
+    model.noise_mode = NOISE_MODE
 
+    # Load MSE file
+    model.load_mses(MSE_FILEPATH)
+    
     # Pretty print stuff for debug and save config to file
     utils.extras(cfg=cfg)
     log.info(f"Instantiating Clients")
@@ -175,14 +181,14 @@ def main(cfg: DictConfig):
     for r in range(cfg.sfl.num_rounds):
         log.info(f"GLOBAL ROUND : {r+1} of {cfg.sfl.num_rounds}")
         # Simulate communication each round
-        if wireless is not None:
+        if wireless is not None and model.noise_mode == "per_round":
             mses = wireless()
             log.info(f"Simulating comms scenario: {wireless.scenario}. MSEs: {mses}")
         # Client training loop
         # Load client models
         for i, client in enumerate(clients):
             # Update communication MSEs if needed
-            if wireless is not None:
+            if wireless is not None and model.noise_mode == "per_round":
                 client.model.add_noise = mses[i]
             if r!= 0:
                 client.model.load_state_dict(torch.load(cfg.paths.client_ckpts_path + f"client_{client.id}.pt"))
