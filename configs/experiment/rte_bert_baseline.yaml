@@ -1,10 +1,12 @@
 # @package _global_ 
 defaults:
-- override /datamodule: sst2.yaml
+- override /datamodule: rte.yaml
 - override /model: bert_for_sequence_classification.yaml
 - override /wireless: null
 tags:
-- sst2
+- rte
 - bert_for_sequence_classification
 - None
 task_name: sc
+mse_path: null
+noise_mode: per_batch

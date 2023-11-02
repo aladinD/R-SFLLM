@@ -1,10 +1,10 @@
 # @package _global_ 
 defaults:
-- override /datamodule: sst2.yaml
+- override /datamodule: mrpc.yaml
 - override /model: roberta_for_sequence_classification.yaml
 - override /wireless: no_protection.yaml
 tags:
-- sst2
+- mrpc
 - roberta_for_sequence_classification
 - no_protection
 task_name: sc

@@ -175,13 +175,13 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
             current_mse = self.all_mses[index][self.user_id]
 
             # DEBUG
-            print("PER BATCH")
-            print("BATCH N0: ", self.batch_index)
-            print("CURRENT EPOCH: ", self.current_train_epoch)
-            print("CURRENT ROUND: ", self.current_round)
-            print("NUM BATCHES: ", self.num_batches)
-            print("BATCH INDEX: ", index)
-            print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+            # print("PER BATCH")
+            # print("BATCH N0: ", self.batch_index)
+            # print("CURRENT EPOCH: ", self.current_train_epoch)
+            # print("CURRENT ROUND: ", self.current_round)
+            # print("NUM BATCHES: ", self.num_batches)
+            # print("BATCH INDEX: ", index)
+            # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
 
             self.add_noise = current_mse
             noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)

@@ -4,7 +4,9 @@ import copy
 import os
 import rootutils
 
-def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
+def main(experiment_dir: str = os.path.split(__file__)[0], 
+         noise_mode: str = "per_round", 
+         mse_base_path: str = "/home/aladin/latest/resilient_sfl/mse_files" ) -> None:
     """
     Generates experiment configs for all tasks
     """
@@ -16,7 +18,7 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
         #     "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         # }, 
         "sc": {
-            "datamodule": ["sst2.yaml"], # "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"], 
+            "datamodule": ["sst2.yaml", "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"], 
             "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
             "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         }
@@ -26,9 +28,18 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
     config_scaffold = {
         "defaults": [{f"override /{o}": None} for o in all_dict["sc"].keys()],
         "tags": [],
-        "task_name": None
+        "task_name": None,
+        "mse_path": None,
+        "noise_mode": None
     }
     print(config_scaffold)
+
+    mse_path_map = {
+            "no_jammer.yaml": mse_base_path + "/mse_no_jammer.npy",
+            "no_protection.yaml": mse_base_path + "/mse_no_protection.npy",
+            "w_protection.yaml": mse_base_path + "/mse_w_protection.npy",
+            None: None
+        }
 
     # Loop through tasks and their configurations and generate experiment configs
     for task, vals in all_dict.items():
@@ -55,6 +66,11 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
             for i, c in enumerate(comb):
                 conf_dict["defaults"][i][f"override /{names[i]}"] = c
 
+            # Set mse_path based on the wireless value
+            conf_dict["mse_path"] = mse_path_map[comb[names.index("wireless")]]
+
+            # Set noise_mode
+            conf_dict["noise_mode"] = noise_mode
 
             # Convert dictionary to OmegaConf object for saving
             conf = OmegaConf.create(conf_dict)
@@ -80,4 +96,4 @@ if __name__ == "__main__":
     exp_dir = os.path.join(project_root, "configs", "experiment")
 
     # Start generating experiment configurations
-    main(experiment_dir=exp_dir)
+    main(experiment_dir=exp_dir, noise_mode="per_batch", mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")

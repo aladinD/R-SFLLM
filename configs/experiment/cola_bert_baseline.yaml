@@ -1,12 +1,12 @@
 # @package _global_ 
 defaults:
-- override /datamodule: sst2.yaml
+- override /datamodule: cola.yaml
 - override /model: bert_for_sequence_classification.yaml
-- override /wireless: no_jammer.yaml
+- override /wireless: null
 tags:
-- sst2
+- cola
 - bert_for_sequence_classification
-- no_jammer
+- None
 task_name: sc
-mse_path: /home/aladin/latest/resilient_sfl/mse_files/mse_no_jammer.npy
+mse_path: null
 noise_mode: per_batch

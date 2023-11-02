@@ -34,8 +34,6 @@ torch.backends.cudnn.benchmark = False
 random.seed(seed)
 np.random.seed(seed)
 
-MSE_FILEPATH = '/home/aladin/sfl_training/resilient_sfl/all_mses_np_baseline.npy'
-NOISE_MODE = "per_batch"
 
 def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 3):
     """
@@ -143,9 +141,10 @@ def main(cfg: DictConfig):
     model.add_noise = False
 
     # Noise mode
-    model.noise_mode = NOISE_MODE
+    model.noise_mode = cfg.get("noise_mode", None)
 
     # Load MSE file
+    MSE_FILEPATH = cfg.get("mse_path", None)
     model.load_mses(MSE_FILEPATH)
     
     # Pretty print stuff for debug and save config to file
