@@ -186,7 +186,7 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
                 # self.log("batch_mse", current_mse, on_epoch=False, on_step=True, logger=self.mse_logger)
 
                 # DEBUG
-                print("PER BATCH")
+                # print("PER BATCH")
                 # print("BATCH N0: ", self.batch_index)
                 # print("CURRENT EPOCH: ", self.current_train_epoch)
                 # print("CURRENT ROUND: ", self.current_round)
@@ -202,7 +202,7 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
             elif self.noise_mode == 'per_round' and self.add_noise is not None:
 
                 # DEBUG
-                print("PER ROUND")
+                # print("PER ROUND")
                 # print("BATCH N0: ", self.batch_index)
                 # print("CURRENT EPOCH: ", self.current_train_epoch)
                 # print("CURRENT ROUND: ", self.current_round)
