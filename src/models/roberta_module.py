@@ -52,6 +52,7 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         self.num_classes = None
 
         # Assign noise per round
+        self.skip_noise = False
         self.add_noise: Optional[float] = None
         self.noise_mode = None 
 
@@ -169,7 +170,7 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         )
 
         # Conditionally add noise
-        if self.training:
+        if self.training and not self.skip_noise:
             if self.noise_mode == 'per_batch': 
                 
                 # current_mse = self.all_mses[self.batch_index][self.user_id]
@@ -402,6 +403,7 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         self.num_classes = None
 
         # Assign noise per round
+        self.skip_noise = False
         self.add_noise: Optional[float] = None
         self.noise_mode = None 
 
@@ -519,7 +521,7 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         )
 
         # Conditionally add noise
-        if self.training:
+        if self.training and not self.skip_noise:
             if self.noise_mode == 'per_batch': 
                 
                 # current_mse = self.all_mses[self.batch_index][self.user_id]
