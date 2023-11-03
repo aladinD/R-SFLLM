@@ -20,6 +20,8 @@ from transformers.models.roberta.modeling_roberta import (
 
 import numpy as np
 
+from pytorch_lightning.loggers import CSVLogger
+
 
 class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningModule):
     """
@@ -62,7 +64,7 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         self.num_batches = 0
 
         # Identifies the current global round
-        self.current_round = None
+        self.current_round = 0
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -71,6 +73,11 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
     def load_mses(self, mse_filepath: str):
         """Loads the MSE file."""
         self.all_mses = np.load(mse_filepath, allow_pickle=True)
+
+    
+    # def init_mse_logger(self, log_filepath: str):
+    #     """Initializes the MSE logger."""
+    #     self.mse_logger = CSVLogger(save_dir=log_filepath, name="batch_mse")
 
 
     def forward(self, 
@@ -162,46 +169,42 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         )
 
         # Conditionally add noise
-        if self.noise_mode == 'per_batch': 
-            
-            # current_mse = self.all_mses[self.batch_index][self.user_id]
-            index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-            current_mse = self.all_mses[index][self.user_id]
+        if self.training:
+            if self.noise_mode == 'per_batch': 
+                
+                # current_mse = self.all_mses[self.batch_index][self.user_id]
+                index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                current_mse = self.all_mses[index][self.user_id]
 
-            # DEBUG
-            # print("PER BATCH")
-            # print("BATCH N0: ", self.batch_index)
-            # print("CURRENT EPOCH: ", self.current_train_epoch)
-            # print("CURRENT ROUND: ", self.current_round)
-            # print("NUM BATCHES: ", self.num_batches)
-            # print("BATCH INDEX: ", index)
-            # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+                # self.log("batch_mse", current_mse, on_epoch=False, on_step=True, logger=self.mse_logger)
 
-            self.add_noise = current_mse
-            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-            embedding_output += noise
+                # DEBUG
+                # print("PER BATCH")
+                # print("BATCH N0: ", self.batch_index)
+                # print("CURRENT EPOCH: ", self.current_train_epoch)
+                # print("CURRENT ROUND: ", self.current_round)
+                # print("NUM BATCHES: ", self.num_batches)
+                # print("BATCH INDEX: ", index)
+                # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+                self.add_noise = current_mse
+                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                embedding_output += noise
 
 
-        elif self.noise_mode == 'per_round' and self.add_noise is not None:
+            elif self.noise_mode == 'per_round' and self.add_noise is not None:
 
-            # DEBUG
-            # print("PER ROUND")
-            # print("BATCH N0: ", self.batch_index)
-            # print("CURRENT EPOCH: ", self.current_train_epoch)
-            # print("CURRENT ROUND: ", self.current_round)
-            # print("NUM BATCHES: ", self.num_batches)
-            # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-            # print("BATCH INDEX: ", index)
+                # DEBUG
+                # print("PER ROUND")
+                # print("BATCH N0: ", self.batch_index)
+                # print("CURRENT EPOCH: ", self.current_train_epoch)
+                # print("CURRENT ROUND: ", self.current_round)
+                # print("NUM BATCHES: ", self.num_batches)
+                # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                # print("BATCH INDEX: ", index)
 
-            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-            embedding_output += noise
-
-        # # Add noise to the embedding output (ORIGINAL)
-        # if self.add_noise is not None:
-        #     noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
-        #     embedding_output += noise
-        # else:
-        #     pass
+                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                embedding_output += noise
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -411,7 +414,7 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         self.num_batches = 0
 
         # Identifies the current global round
-        self.current_round = None
+        self.current_round = 0
 
         # Initialize weights and apply final processing
         self.post_init()
@@ -420,6 +423,11 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
     def load_mses(self, mse_filepath: str):
         """Loads the MSE file."""
         self.all_mses = np.load(mse_filepath, allow_pickle=True)
+
+
+    # def init_mse_logger(self, log_filepath: str):
+    #     """Initializes the MSE logger."""
+    #     self.mse_logger = CSVLogger(save_dir=log_filepath, name="batch_mse")
 
 
     def forward(self, 
@@ -511,46 +519,42 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         )
 
         # Conditionally add noise
-        if self.noise_mode == 'per_batch': 
-            
-            # current_mse = self.all_mses[self.batch_index][self.user_id]
-            index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-            current_mse = self.all_mses[index][self.user_id]
+        if self.training:
+            if self.noise_mode == 'per_batch': 
+                
+                # current_mse = self.all_mses[self.batch_index][self.user_id]
+                index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                current_mse = self.all_mses[index][self.user_id]
 
-            # DEBUG
-            # print("PER BATCH")
-            # print("BATCH N0: ", self.batch_index)
-            # print("CURRENT EPOCH: ", self.current_train_epoch)
-            # print("CURRENT ROUND: ", self.current_round)
-            # print("NUM BATCHES: ", self.num_batches)
-            # print("BATCH INDEX: ", index)
-            # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+                # self.log("batch_mse", current_mse, on_epoch=False, on_step=True, logger=self.mse_logger)
 
-            self.add_noise = current_mse
-            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-            embedding_output += noise
+                # DEBUG
+                # print("PER BATCH")
+                # print("BATCH N0: ", self.batch_index)
+                # print("CURRENT EPOCH: ", self.current_train_epoch)
+                # print("CURRENT ROUND: ", self.current_round)
+                # print("NUM BATCHES: ", self.num_batches)
+                # print("BATCH INDEX: ", index)
+                # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+                self.add_noise = current_mse
+                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                embedding_output += noise
 
 
-        elif self.noise_mode == 'per_round' and self.add_noise is not None:
+            elif self.noise_mode == 'per_round' and self.add_noise is not None:
 
-            # DEBUG
-            # print("PER ROUND")
-            # print("BATCH N0: ", self.batch_index)
-            # print("CURRENT EPOCH: ", self.current_train_epoch)
-            # print("CURRENT ROUND: ", self.current_round)
-            # print("NUM BATCHES: ", self.num_batches)
-            # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-            # print("BATCH INDEX: ", index)
+                # DEBUG
+                # print("PER ROUND")
+                # print("BATCH N0: ", self.batch_index)
+                # print("CURRENT EPOCH: ", self.current_train_epoch)
+                # print("CURRENT ROUND: ", self.current_round)
+                # print("NUM BATCHES: ", self.num_batches)
+                # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                # print("BATCH INDEX: ", index)
 
-            noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-            embedding_output += noise
-
-        # # Add noise to the embedding output (ORIGINAL)
-        # if self.add_noise is not None:
-        #     noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
-        #     embedding_output += noise
-        # else:
-        #     pass
+                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                embedding_output += noise
 
         encoder_outputs = self.encoder(
             embedding_output,

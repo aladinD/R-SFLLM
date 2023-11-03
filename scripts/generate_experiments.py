@@ -62,6 +62,11 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
             conf_dict = copy.deepcopy(config_scaffold)  # Copy the base scaffold
             conf_dict["task_name"] = task
             tags = list(map(lambda x: x.split(".")[0] if isinstance(x, str) else str(x), comb))
+
+            # Add noise mode to tags
+            if noise_mode:
+                tags.append(noise_mode)
+
             conf_dict["tags"] = tags
             for i, c in enumerate(comb):
                 conf_dict["defaults"][i][f"override /{names[i]}"] = c
@@ -77,6 +82,12 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
             tags_proc = tags
             tags_proc[1] = tags_proc[1].split("_")[0]
             tags_proc[2] = "baseline" if tags_proc[2] == "None" else tags_proc[2]
+
+            # Add noise_mode to the beginning of the tags
+            if noise_mode:
+                tags_proc.remove(noise_mode)  # remove noise_mode from its current position
+                tags_proc.insert(0, noise_mode)  # insert noise_mode at the beginning
+
             exp_name = "_".join(tags_proc)
 
             # Save the configuration to a .yaml file
