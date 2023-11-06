@@ -568,11 +568,11 @@ if __name__ == "__main__":
     #                         client_name="client_0",
     #                         plot_name="joint_multiplot_bert_.png")
     
-    generate_multiplot(main_dir='/home/aladin/sfl_training/resilient_sfl/logs/sc/multiruns/2023-10-22_16-54-58', 
-                       dataset='cola', 
+    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-05_11-48-50', 
+                       dataset='sst2', 
                        model='roberta_for_sequence_classification',
-                       client_name="client_2",
-                       plot_name="multiplot_cola_roberta.png")
+                       client_name="client_0",
+                       plot_name="multiplot_sst2_roberta.png")
     
     # generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
     #                    dataset='sst2', 

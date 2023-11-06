@@ -195,7 +195,8 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
                 # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
 
                 self.add_noise = current_mse
-                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                # noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
                 embedding_output += noise
 
 
@@ -210,7 +211,8 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
                 # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
                 # print("BATCH INDEX: ", index)
 
-                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                # noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
+                noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
                 embedding_output += noise
 
         encoder_outputs = self.encoder(
