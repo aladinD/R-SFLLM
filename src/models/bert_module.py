@@ -16,12 +16,8 @@ from transformers.models.bert.modeling_bert import (BertEmbeddings, BertEncoder,
                                                    BertPooler, BertPreTrainedModel, TokenClassifierOutput)
 from transformers import get_linear_schedule_with_warmup
 
-import hydra
-from src.models.components.wireless_module import WirelessModule
-
 import numpy as np
 
-from pytorch_lightning.loggers import CSVLogger
 
 
 class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
@@ -79,11 +75,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
     def load_mses(self, mse_filepath: str):
         """Loads the MSE file."""
         self.all_mses = np.load(mse_filepath, allow_pickle=True)
-
-
-    # def init_mse_logger(self, log_filepath: str):
-    #     """Initializes the MSE logger."""
-    #     self.mse_logger = CSVLogger(save_dir=log_filepath, name="batch_mse")
 
 
     def forward(
@@ -183,8 +174,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
                 index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
                 current_mse = self.all_mses[index][self.user_id]
 
-                # self.log("batch_mse", current_mse, on_epoch=False, on_step=True, logger=self.mse_logger)
-
                 # DEBUG
                 # print("PER BATCH")
                 # print("BATCH N0: ", self.batch_index)
@@ -195,7 +184,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
                 # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
 
                 self.add_noise = current_mse
-                # noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
                 noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
                 embedding_output += noise
 
@@ -211,7 +199,6 @@ class BERTForSequenceClassificationModule(BertPreTrainedModel, LightningModule):
                 # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
                 # print("BATCH INDEX: ", index)
 
-                # noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
                 noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
                 embedding_output += noise
 

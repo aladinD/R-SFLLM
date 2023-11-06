@@ -75,11 +75,6 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         """Loads the MSE file."""
         self.all_mses = np.load(mse_filepath, allow_pickle=True)
 
-    
-    # def init_mse_logger(self, log_filepath: str):
-    #     """Initializes the MSE logger."""
-    #     self.mse_logger = CSVLogger(save_dir=log_filepath, name="batch_mse")
-
 
     def forward(self, 
                 input_ids: Optional[torch.LongTensor] = None,
@@ -171,13 +166,12 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
 
         # Conditionally add noise
         if self.training and not self.skip_noise:
+
             if self.noise_mode == 'per_batch': 
                 
                 # current_mse = self.all_mses[self.batch_index][self.user_id]
                 index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
                 current_mse = self.all_mses[index][self.user_id]
-
-                # self.log("batch_mse", current_mse, on_epoch=False, on_step=True, logger=self.mse_logger)
 
                 # DEBUG
                 # print("PER BATCH")
@@ -189,7 +183,6 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
                 # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
 
                 self.add_noise = current_mse
-                # noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
                 noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
                 embedding_output += noise
 
@@ -197,7 +190,7 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
             elif self.noise_mode == 'per_round' and self.add_noise is not None:
 
                 # DEBUG
-                # print("PER ROUND")
+                print("PER ROUND")
                 # print("NOISE : ", self.add_noise)
                 # print("BATCH N0: ", self.batch_index)
                 # print("CURRENT EPOCH: ", self.current_train_epoch)
@@ -206,7 +199,6 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
                 # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
                 # print("BATCH INDEX: ", index)
 
-                # noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
                 noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
                 embedding_output += noise
 

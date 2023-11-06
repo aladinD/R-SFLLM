@@ -146,13 +146,10 @@ def main(cfg: DictConfig):
     # Load MSE file
     MSE_FILEPATH = cfg.get("mse_path", None)
     if MSE_FILEPATH is not None:
-        model.load_mses(MSE_FILEPATH)
+        if model.noise_mode == "per_batch":
+            model.load_mses(MSE_FILEPATH)
     else:
         model.skip_noise = True
-
-    # Initialize batch mse logging
-    # if model.noise_mode == "per_batch":
-    #     model.init_mse_logger(log_filepath=cfg.paths.client_log_path)
 
     # Set the max epochs for training according to sfl!
     cfg.trainer.max_epochs = cfg.sfl.num_epochs
