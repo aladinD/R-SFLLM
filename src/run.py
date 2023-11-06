@@ -88,6 +88,9 @@ def evaluate_master_model(model, cfg: DictConfig, r: int):
                     val_data=master_val_dl)
     
     master.model.load_state_dict(torch.load(cfg.paths.master_ckpts_path + f"master_round_{r}.pt"))
+
+    # Ensure that the global model is not affected by noise
+    master.model.skip_noise = True
     
     eval_config = copy.deepcopy(cfg.trainer)
     eval_config.devices = 1
@@ -140,7 +143,12 @@ def main(cfg: DictConfig):
     # Initialize model metrics
     model.init_metrics()
 
-    # Set adversarial noise mode (batch vs. round)
+    # Set adversarial training mode 
+    # if true: noise is only added during training and not during validation and testing
+    # if false: noise is added during training, validation and testing
+    model.adversarial_training = cfg.get("adversarial", False)
+
+    # # Set adversarial noise mode (batch vs. round)
     model.noise_mode = cfg.get("noise_mode", None)
 
     # Load MSE file

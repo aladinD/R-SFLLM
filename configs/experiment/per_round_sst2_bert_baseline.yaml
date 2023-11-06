@@ -11,3 +11,4 @@ tags:
 task_name: sc
 mse_path: null
 noise_mode: per_round
+adversarial: false

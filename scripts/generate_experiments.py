@@ -5,6 +5,7 @@ import os
 import rootutils
 
 def main(experiment_dir: str = os.path.split(__file__)[0], 
+         adversarial: bool = True,
          noise_mode: str = "per_round", 
          mse_base_path: str = "/home/aladin/latest/resilient_sfl/mse_files" ) -> None:
     """
@@ -30,7 +31,8 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
         "tags": [],
         "task_name": None,
         "mse_path": None,
-        "noise_mode": None
+        "noise_mode": None,
+        "adversarial": None
     }
     print(config_scaffold)
 
@@ -63,7 +65,10 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
             conf_dict["task_name"] = task
             tags = list(map(lambda x: x.split(".")[0] if isinstance(x, str) else str(x), comb))
 
-            # Add noise mode to tags
+            # Add adversarial and noise mode to tags
+            if adversarial:
+                tags.append('adversarial')
+
             if noise_mode:
                 tags.append(noise_mode)
 
@@ -74,7 +79,8 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
             # Set mse_path based on the wireless value
             conf_dict["mse_path"] = mse_path_map[comb[names.index("wireless")]]
 
-            # Set noise_mode
+            # Set adversarial and noise_mode
+            conf_dict["adversarial"] = adversarial
             conf_dict["noise_mode"] = noise_mode
 
             # Convert dictionary to OmegaConf object for saving
@@ -87,6 +93,10 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
             if noise_mode:
                 tags_proc.remove(noise_mode)  # remove noise_mode from its current position
                 tags_proc.insert(0, noise_mode)  # insert noise_mode at the beginning
+
+            if adversarial:
+                tags_proc.remove('adversarial')  # remove noise_mode from its current position
+                tags_proc.insert(0, 'adversarial')  # insert noise_mode at the beginning
 
             exp_name = "_".join(tags_proc)
 
@@ -107,4 +117,7 @@ if __name__ == "__main__":
     exp_dir = os.path.join(project_root, "configs", "experiment")
 
     # Start generating experiment configurations
-    main(experiment_dir=exp_dir, noise_mode="per_round", mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+    main(experiment_dir=exp_dir, 
+         adversarial=False, 
+         noise_mode="per_round", 
+         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")

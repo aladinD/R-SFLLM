@@ -51,6 +51,9 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         # Classes params
         self.num_classes = None
 
+        # Adversarial training
+        self.adversarial_training = False
+
         # Assign noise per round
         self.skip_noise = False
         self.add_noise: Optional[float] = None
@@ -165,41 +168,81 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
         )
 
         # Conditionally add noise
-        if self.training and not self.skip_noise:
+        if self.adversarial_training:
 
-            if self.noise_mode == 'per_batch': 
-                
-                index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-                current_mse = self.all_mses[index][self.user_id]
+            if self.training and not self.skip_noise:
 
-                # DEBUG
-                # print("PER BATCH")
-                # print("BATCH N0: ", self.batch_index)
-                # print("CURRENT EPOCH: ", self.current_train_epoch)
-                # print("CURRENT ROUND: ", self.current_round)
-                # print("NUM BATCHES: ", self.num_batches)
-                # print("BATCH INDEX: ", index)
-                # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+                if self.noise_mode == 'per_batch': 
+                    
+                    index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    current_mse = self.all_mses[index][self.user_id]
 
-                self.add_noise = current_mse
-                noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
-                embedding_output += noise
+                    # DEBUG
+                    # print("PER BATCH ADVERSARIAL")
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # print("BATCH INDEX: ", index)
+                    # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+                    self.add_noise = current_mse
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
 
 
-            elif self.noise_mode == 'per_round' and self.add_noise is not None:
+                elif self.noise_mode == 'per_round' and self.add_noise is not None:
 
-                # DEBUG
-                print("PER ROUND")
-                # print("NOISE : ", self.add_noise)
-                # print("BATCH N0: ", self.batch_index)
-                # print("CURRENT EPOCH: ", self.current_train_epoch)
-                # print("CURRENT ROUND: ", self.current_round)
-                # print("NUM BATCHES: ", self.num_batches)
-                # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-                # print("BATCH INDEX: ", index)
+                    # DEBUG
+                    # print("PER ROUND ADVERSARIAL")
+                    # print("NOISE : ", self.add_noise)
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    # print("BATCH INDEX: ", index)
 
-                noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
-                embedding_output += noise
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
+
+        else:
+
+            if not self.skip_noise:
+
+                if self.noise_mode == 'per_batch': 
+                    
+                    index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    current_mse = self.all_mses[index][self.user_id]
+
+                    # DEBUG
+                    # print("PER BATCH NON ADVERSARIAL")
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # print("BATCH INDEX: ", index)
+                    # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+                    self.add_noise = current_mse
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
+
+
+                elif self.noise_mode == 'per_round' and self.add_noise is not None:
+
+                    # DEBUG
+                    # print("PER ROUND NON ADVERSARIAL")
+                    # print("NOISE : ", self.add_noise)
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    # print("BATCH INDEX: ", index)
+
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
 
         encoder_outputs = self.encoder(
             embedding_output,
@@ -396,6 +439,9 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         # Classes params
         self.num_classes = None
 
+        # Adversarial training
+        self.adversarial_training = False
+
         # Assign noise per round
         self.skip_noise = False
         self.add_noise: Optional[float] = None
@@ -515,42 +561,81 @@ class RoBERTaForTokenClassificationModule(RobertaPreTrainedModel, LightningModul
         )
 
         # Conditionally add noise
-        if self.training and not self.skip_noise:
-            if self.noise_mode == 'per_batch': 
-                
-                # current_mse = self.all_mses[self.batch_index][self.user_id]
-                index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-                current_mse = self.all_mses[index][self.user_id]
+        if self.adversarial_training:
 
-                # self.log("batch_mse", current_mse, on_epoch=False, on_step=True, logger=self.mse_logger)
+            if self.training and not self.skip_noise:
 
-                # DEBUG
-                # print("PER BATCH")
-                # print("BATCH N0: ", self.batch_index)
-                # print("CURRENT EPOCH: ", self.current_train_epoch)
-                # print("CURRENT ROUND: ", self.current_round)
-                # print("NUM BATCHES: ", self.num_batches)
-                # print("BATCH INDEX: ", index)
-                # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+                if self.noise_mode == 'per_batch': 
+                    
+                    index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    current_mse = self.all_mses[index][self.user_id]
 
-                self.add_noise = current_mse
-                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-                embedding_output += noise
+                    # DEBUG
+                    # print("PER BATCH ADVERSARIAL")
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # print("BATCH INDEX: ", index)
+                    # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+                    self.add_noise = current_mse
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
 
 
-            elif self.noise_mode == 'per_round' and self.add_noise is not None:
+                elif self.noise_mode == 'per_round' and self.add_noise is not None:
 
-                # DEBUG
-                # print("PER ROUND")
-                # print("BATCH N0: ", self.batch_index)
-                # print("CURRENT EPOCH: ", self.current_train_epoch)
-                # print("CURRENT ROUND: ", self.current_round)
-                # print("NUM BATCHES: ", self.num_batches)
-                # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
-                # print("BATCH INDEX: ", index)
+                    # DEBUG
+                    # print("PER ROUND ADVERSARIAL")
+                    # print("NOISE : ", self.add_noise)
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    # print("BATCH INDEX: ", index)
 
-                noise = torch.normal(mean=0.0, std=self.add_noise, size=embedding_output.shape, device=self.device)
-                embedding_output += noise
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
+
+        else:
+
+            if not self.skip_noise:
+
+                if self.noise_mode == 'per_batch': 
+                    
+                    index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    current_mse = self.all_mses[index][self.user_id]
+
+                    # DEBUG
+                    # print("PER BATCH NON ADVERSARIAL")
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # print("BATCH INDEX: ", index)
+                    # print(f"CURRENT BATCH {self.batch_index} AND CLIENT {self.user_id} with MSE {current_mse}")
+
+                    self.add_noise = current_mse
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
+
+
+                elif self.noise_mode == 'per_round' and self.add_noise is not None:
+
+                    # DEBUG
+                    # print("PER ROUND NON ADVERSARIAL")
+                    # print("NOISE : ", self.add_noise)
+                    # print("BATCH N0: ", self.batch_index)
+                    # print("CURRENT EPOCH: ", self.current_train_epoch)
+                    # print("CURRENT ROUND: ", self.current_round)
+                    # print("NUM BATCHES: ", self.num_batches)
+                    # index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
+                    # print("BATCH INDEX: ", index)
+
+                    noise = torch.normal(mean=0, std=math.sqrt(self.add_noise), size=embedding_output.shape).to(embedding_output.device)
+                    embedding_output += noise
 
         encoder_outputs = self.encoder(
             embedding_output,
