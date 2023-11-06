@@ -169,7 +169,6 @@ class RoBERTaForSequenceClassificationModule(RobertaPreTrainedModel, LightningMo
 
             if self.noise_mode == 'per_batch': 
                 
-                # current_mse = self.all_mses[self.batch_index][self.user_id]
                 index = self.batch_index + (self.current_train_epoch * self.num_batches) + (self.current_train_epoch * self.current_round * self.num_batches)
                 current_mse = self.all_mses[index][self.user_id]
 
