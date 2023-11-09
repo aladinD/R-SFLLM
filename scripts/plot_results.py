@@ -91,7 +91,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         config.paths.log_path = os.path.join(main_dir, relative_path)
 
         # Fetch the scenario from the config or tags.log
-        scenario = config.tags[-1] if "tags" in config else None
+        scenario = config.tags[-2] if "tags" in config else None
         if not scenario:
             with open(os.path.join(directory, "tags.log"), 'r') as file:
                 content = file.read()
@@ -568,11 +568,11 @@ if __name__ == "__main__":
     #                         client_name="client_0",
     #                         plot_name="joint_multiplot_bert_.png")
     
-    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-05_11-48-50', 
+    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-07_09-58-45', 
                        dataset='sst2', 
-                       model='roberta_for_sequence_classification',
+                       model='bert_for_sequence_classification',
                        client_name="client_0",
-                       plot_name="multiplot_sst2_roberta.png")
+                       plot_name="multiplot_sst2_bert.png")
     
     # generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
     #                    dataset='sst2', 
