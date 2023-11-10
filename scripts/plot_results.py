@@ -67,6 +67,9 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
     """
     Generate a multiplot for all the subfolders that match the given dataset and model.
     """
+    # Define known scenarios
+    known_scenarios = ["None", "no_jammer", "no_protection", "w_protection"]
+
     # Fetch all relevant directories based on the dataset and model
     directories = fetch_relevant_directories(main_dir, dataset, model)
     
@@ -91,12 +94,28 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         config.paths.log_path = os.path.join(main_dir, relative_path)
 
         # Fetch the scenario from the config or tags.log
-        scenario = config.tags[-2] if "tags" in config else None
+        # scenario = config.tags[-2] if "tags" in config else None
+        # if not scenario:
+        #     with open(os.path.join(directory, "tags.log"), 'r') as file:
+        #         content = file.read()
+        #         tags = [tag.strip() for tag in content.strip("[]").split(",")]
+        #         scenario = tags[-1]
+        # Fetch the scenario from the config or tags.log
+        scenario = None
+        if "tags" in config:
+            for tag in config.tags:
+                if tag in known_scenarios:
+                    scenario = tag
+                    break
+
         if not scenario:
             with open(os.path.join(directory, "tags.log"), 'r') as file:
                 content = file.read()
                 tags = [tag.strip() for tag in content.strip("[]").split(",")]
-                scenario = tags[-1]
+                for tag in tags:
+                    if tag in known_scenarios:
+                        scenario = tag
+                        break
 
         # Determine the current subplot axis
         ax = axes[idx // cols, idx % cols] if rows > 1 else axes[idx % cols]
@@ -568,7 +587,7 @@ if __name__ == "__main__":
     #                         client_name="client_0",
     #                         plot_name="joint_multiplot_bert_.png")
     
-    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-07_09-58-45', 
+    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-09_15-47-25', 
                        dataset='sst2', 
                        model='bert_for_sequence_classification',
                        client_name="client_0",
