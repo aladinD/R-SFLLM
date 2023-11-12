@@ -587,11 +587,11 @@ if __name__ == "__main__":
     #                         client_name="client_0",
     #                         plot_name="joint_multiplot_bert_.png")
     
-    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-09_15-47-25', 
-                       dataset='sst2', 
+    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/2023-11-11_12-45-21', 
+                       dataset='mrpc', 
                        model='bert_for_sequence_classification',
                        client_name="client_0",
-                       plot_name="multiplot_sst2_bert.png")
+                       plot_name="multiplot_mrpc_bert.png")
     
     # generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
     #                    dataset='sst2', 
