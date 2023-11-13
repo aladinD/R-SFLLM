@@ -121,3 +121,18 @@ if __name__ == "__main__":
          adversarial=True, 
          noise_mode="per_round", 
          mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+    
+    main(experiment_dir=exp_dir, 
+         adversarial=False, 
+         noise_mode="per_round", 
+         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+    
+    main(experiment_dir=exp_dir, 
+         adversarial=True, 
+         noise_mode="per_batch", 
+         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+    
+    main(experiment_dir=exp_dir, 
+         adversarial=False, 
+         noise_mode="per_batch", 
+         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
