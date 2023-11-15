@@ -141,7 +141,7 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
             ax.set_ylabel('F1 Score')
         
         # Set the y-axis scale
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0.5, 1)
 
         # Set scenario titles
         title_mapping = {
@@ -587,11 +587,11 @@ if __name__ == "__main__":
     #                         client_name="client_0",
     #                         plot_name="joint_multiplot_bert_.png")
     
-    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/ner/multiruns/conll/conll_roberta_per_round_adversarial', 
-                       dataset='conll2003', 
-                       model='roberta_for_token_classification',
+    generate_multiplot(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/cola_roberta_per_batch', 
+                       dataset='cola', 
+                       model='roberta_for_sequence_classification',
                        client_name="client_0",
-                       plot_name="multiplot_conll_roberta.png")
+                       plot_name="multiplot_cola_roberta.png")
     
     # generate_joint_plot(main_dir='/home/aladin/refactoring/resilient_sfl/logs/sc/multiruns/2023-10-02_22-55-42', 
     #                    dataset='sst2', 
