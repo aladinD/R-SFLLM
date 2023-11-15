@@ -13,21 +13,21 @@ def main(experiment_dir: str = os.path.split(__file__)[0],
     """
     # Define available task configurations
     all_dict = {
-        "ner": {
-            "datamodule": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
-            "model": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
-            "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
-        }
-        # "sc": {
-        #     "datamodule": ["sst2.yaml", "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"], 
-        #     "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
+        # "ner": {
+        #     "datamodule": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
+        #     "model": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
         #     "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         # }
+        "sc": {
+            "datamodule": ["sst2.yaml", "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"], 
+            "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
+            "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
+        }
     }
 
     # Base configuration scaffold
     config_scaffold = {
-        "defaults": [{f"override /{o}": None} for o in all_dict["ner"].keys()],
+        "defaults": [{f"override /{o}": None} for o in all_dict["sc"].keys()],
         "tags": [],
         "task_name": None,
         "mse_path": None,
