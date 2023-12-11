@@ -35,7 +35,7 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 3):
+def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 0):
     """
     Train and save a client model seperately in a sequential or parallel job.
     """
@@ -47,7 +47,10 @@ def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool 
 
     if parallel:
         # hacky way to train on gpus 4, 5, 6, ..., num_clients + 4
-        cfg.trainer.devices = [client.id + dev_offset]
+        # cfg.trainer.devices = [client.id + dev_offset]
+        num_gpus = torch.cuda.device_count()
+        cfg.trainer.devices = [(client.id + dev_offset) % num_gpus]
+
     else:
         cfg.trainer.devices = [0]
         
@@ -92,15 +95,17 @@ def evaluate_master_model(model, cfg: DictConfig, r: int):
     # Ensure that the global model is not affected by noise
     master.model.skip_noise = True
     
+    # Evaluation config and GPU assignment
     eval_config = copy.deepcopy(cfg.trainer)
-    eval_config.devices = 1
+    eval_config.devices = [7]   # Select a GPU for master training/evaluation
 
-    train_logger = pl.loggers.CSVLogger(save_dir=cfg.paths.master_log_path, name="train", version=f"round_{r}")
+    # Master re-training [not needed in general, but included here for debugging purposes]
+    # train_logger = pl.loggers.CSVLogger(save_dir=cfg.paths.master_log_path, name="train", version=f"round_{r}")
+    # train_trainer: pl.Trainer = hydra.utils.instantiate(eval_config, logger=train_logger)
+    # train_trainer.test(master.model, master.train_data)
+
+    # Master validation
     validation_logger = pl.loggers.CSVLogger(save_dir=cfg.paths.master_log_path, name="validation", version=f"round_{r}")
-
-    train_trainer: pl.Trainer = hydra.utils.instantiate(eval_config, logger=train_logger)
-    train_trainer.test(master.model, master.train_data)
-
     validation_trainer: pl.Trainer = hydra.utils.instantiate(eval_config, logger=validation_logger)
     validation_trainer.test(master.model, master.val_data)
 

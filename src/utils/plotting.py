@@ -64,15 +64,68 @@ def accumulate_client_metrics(cfg: DictConfig, client_name: str, logs_path: str)
     return train_df, val_df
 
 
-def accumulate_master_metrics(cfg: DictConfig, logs_path: str) -> None:
+# def accumulate_master_metrics(cfg: DictConfig, logs_path: str) -> None:
+#     """
+#     Reads and accumulates metrics for the master model from all rounds.
+    
+#     Parameters:
+#         base_path (str): Base directory where master logs are stored.
+        
+#     Returns:
+#         DataFrame: Accumulated metrics.
+#     """
+#     # Hyperparameters
+#     num_epochs = cfg.sfl.num_epochs
+#     num_rounds = cfg.sfl.num_rounds
+
+#     base_path = logs_path + "master/"
+#     train_dir = os.path.join(base_path, 'train')
+#     val_dir = os.path.join(base_path, 'validation')
+    
+#     # List all rounds for the master model
+#     rounds = [d for d in os.listdir(train_dir) if os.path.isdir(os.path.join(train_dir, d))]
+#     rounds = rounds[:num_rounds]
+#     rounds.sort(key=lambda x: int(x.split("_")[-1])) # sort rounds ascendingly
+    
+#     all_train_metrics = []
+#     all_val_metrics = []
+#     for idx, r in enumerate(rounds):
+#         train_metrics_path = os.path.join(train_dir, r, 'metrics.csv')
+#         val_metrics_path = os.path.join(val_dir, r, 'metrics.csv')
+        
+#         if os.path.exists(train_metrics_path):
+#             train_df = pd.read_csv(train_metrics_path)
+#             # Update the epoch number based on the round number
+#             train_df['epoch'] = train_df['epoch'] + idx * num_epochs -1
+#             all_train_metrics.append(train_df)
+        
+#         if os.path.exists(val_metrics_path):
+#             val_df = pd.read_csv(val_metrics_path)
+#             # Update the epoch number based on the round number
+#             val_df['epoch'] = val_df['epoch'] + idx * num_epochs -1
+#             all_val_metrics.append(val_df)
+    
+#     # Concatenate metrics from all rounds
+#     accumulated_train_df = pd.concat(all_train_metrics, ignore_index=True)
+#     accumulated_val_df = pd.concat(all_val_metrics, ignore_index=True)
+
+#     # Adjust master epoch numbering
+#     accumulated_train_df['epoch'] = accumulated_train_df['epoch'] + num_epochs
+#     accumulated_val_df['epoch'] = accumulated_val_df['epoch'] + num_epochs
+    
+#     return accumulated_train_df, accumulated_val_df
+
+
+def accumulate_master_metrics(cfg: DictConfig, logs_path: str):
     """
     Reads and accumulates metrics for the master model from all rounds.
     
     Parameters:
-        base_path (str): Base directory where master logs are stored.
+        cfg (DictConfig): Configuration object.
+        logs_path (str): Base directory where master logs are stored.
         
     Returns:
-        DataFrame: Accumulated metrics.
+        Tuple[Optional[pd.DataFrame], pd.DataFrame]: Accumulated training and validation metrics.
     """
     # Hyperparameters
     num_epochs = cfg.sfl.num_epochs
@@ -83,7 +136,7 @@ def accumulate_master_metrics(cfg: DictConfig, logs_path: str) -> None:
     val_dir = os.path.join(base_path, 'validation')
     
     # List all rounds for the master model
-    rounds = [d for d in os.listdir(train_dir) if os.path.isdir(os.path.join(train_dir, d))]
+    rounds = [d for d in os.listdir(val_dir) if os.path.isdir(os.path.join(val_dir, d))]
     rounds = rounds[:num_rounds]
     rounds.sort(key=lambda x: int(x.split("_")[-1])) # sort rounds ascendingly
     
@@ -106,13 +159,16 @@ def accumulate_master_metrics(cfg: DictConfig, logs_path: str) -> None:
             all_val_metrics.append(val_df)
     
     # Concatenate metrics from all rounds
-    accumulated_train_df = pd.concat(all_train_metrics, ignore_index=True)
-    accumulated_val_df = pd.concat(all_val_metrics, ignore_index=True)
+    accumulated_train_df = pd.concat(all_train_metrics, ignore_index=True) if all_train_metrics else None
+    accumulated_val_df = pd.concat(all_val_metrics, ignore_index=True) if all_val_metrics else None
 
-    # Adjust master epoch numbering
-    accumulated_train_df['epoch'] = accumulated_train_df['epoch'] + num_epochs
-    accumulated_val_df['epoch'] = accumulated_val_df['epoch'] + num_epochs
+    # Adjust master epoch numbering for training and validation
+    if accumulated_train_df is not None:
+        accumulated_train_df['epoch'] = accumulated_train_df['epoch'] + num_epochs
     
+    if accumulated_val_df is not None:
+        accumulated_val_df['epoch'] = accumulated_val_df['epoch'] + num_epochs
+
     return accumulated_train_df, accumulated_val_df
 
 
