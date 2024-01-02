@@ -117,22 +117,24 @@ if __name__ == "__main__":
     exp_dir = os.path.join(project_root, "configs", "experiment")
 
     # Start generating experiment configurations
+    mse_path = "/home/aladin/latest/resilient_sfl/mse_files/mnli_mses"
+
     main(experiment_dir=exp_dir, 
          adversarial=True, 
          noise_mode="per_round", 
-         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+         mse_base_path=mse_path)
     
     main(experiment_dir=exp_dir, 
          adversarial=False, 
          noise_mode="per_round", 
-         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+         mse_base_path=mse_path)
     
     main(experiment_dir=exp_dir, 
          adversarial=True, 
          noise_mode="per_batch", 
-         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+         mse_base_path=mse_path)
     
     main(experiment_dir=exp_dir, 
          adversarial=False, 
          noise_mode="per_batch", 
-         mse_base_path="/home/aladin/latest/resilient_sfl/mse_files")
+         mse_base_path=mse_path)

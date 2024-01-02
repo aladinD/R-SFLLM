@@ -35,7 +35,7 @@ random.seed(seed)
 np.random.seed(seed)
 
 
-def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 0):
+def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool = True, dev_offset: int = 3):
     """
     Train and save a client model seperately in a sequential or parallel job.
     """
