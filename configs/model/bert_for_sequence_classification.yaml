@@ -10,3 +10,6 @@ lr: 1e-5
 eps: 1e-6
 warmup: 0.1 # 0.1 or empty for None
 scheduler_training_steps: null
+
+# Noise mode
+noise_mode: "per_batch" # "per_round" or "per_batch"

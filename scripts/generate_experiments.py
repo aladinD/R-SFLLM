@@ -4,7 +4,10 @@ import copy
 import os
 import rootutils
 
-def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
+def main(experiment_dir: str = os.path.split(__file__)[0], 
+         adversarial: bool = True,
+         noise_mode: str = "per_round", 
+         mse_base_path: str = "/home/aladin/latest/resilient_sfl/mse_files" ) -> None:
     """
     Generates experiment configs for all tasks
     """
@@ -14,9 +17,9 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
         #     "datamodule": ["conll2003.yaml", "conll2012_ontonotesv5.yaml", "wnut_17.yaml"],
         #     "model": ["bert_for_token_classification.yaml", "roberta_for_token_classification.yaml"],
         #     "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
-        # }, 
+        # }
         "sc": {
-            "datamodule": ["sst2.yaml", "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"],
+            "datamodule": ["sst2.yaml", "cola.yaml", "mnli.yaml", "mrpc.yaml", "qnli.yaml", "rte.yaml"], 
             "model": ["bert_for_sequence_classification.yaml", "roberta_for_sequence_classification.yaml"],
             "wireless": [None, "no_jammer.yaml", "no_protection.yaml", "w_protection.yaml"]
         }
@@ -26,9 +29,19 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
     config_scaffold = {
         "defaults": [{f"override /{o}": None} for o in all_dict["sc"].keys()],
         "tags": [],
-        "task_name": None
+        "task_name": None,
+        "mse_path": None,
+        "noise_mode": None,
+        "adversarial": None
     }
     print(config_scaffold)
+
+    mse_path_map = {
+            "no_jammer.yaml": mse_base_path + "/mse_no_jammer.npy",
+            "no_protection.yaml": mse_base_path + "/mse_no_protection.npy",
+            "w_protection.yaml": mse_base_path + "/mse_w_protection.npy",
+            None: None
+        }
 
     # Loop through tasks and their configurations and generate experiment configs
     for task, vals in all_dict.items():
@@ -51,16 +64,40 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
             conf_dict = copy.deepcopy(config_scaffold)  # Copy the base scaffold
             conf_dict["task_name"] = task
             tags = list(map(lambda x: x.split(".")[0] if isinstance(x, str) else str(x), comb))
+
+            # Add adversarial and noise mode to tags
+            if adversarial:
+                tags.append('adversarial')
+
+            if noise_mode:
+                tags.append(noise_mode)
+
             conf_dict["tags"] = tags
             for i, c in enumerate(comb):
                 conf_dict["defaults"][i][f"override /{names[i]}"] = c
 
+            # Set mse_path based on the wireless value
+            conf_dict["mse_path"] = mse_path_map[comb[names.index("wireless")]]
+
+            # Set adversarial and noise_mode
+            conf_dict["adversarial"] = adversarial
+            conf_dict["noise_mode"] = noise_mode
 
             # Convert dictionary to OmegaConf object for saving
             conf = OmegaConf.create(conf_dict)
             tags_proc = tags
             tags_proc[1] = tags_proc[1].split("_")[0]
             tags_proc[2] = "baseline" if tags_proc[2] == "None" else tags_proc[2]
+
+            # Add noise_mode to the beginning of the tags
+            if noise_mode:
+                tags_proc.remove(noise_mode)  # remove noise_mode from its current position
+                tags_proc.insert(0, noise_mode)  # insert noise_mode at the beginning
+
+            if adversarial:
+                tags_proc.remove('adversarial')  # remove noise_mode from its current position
+                tags_proc.insert(0, 'adversarial')  # insert noise_mode at the beginning
+
             exp_name = "_".join(tags_proc)
 
             # Save the configuration to a .yaml file
@@ -68,7 +105,6 @@ def main(experiment_dir: str = os.path.split(__file__)[0]) -> None:
                 f.write("# @package _global_ \n")
                 OmegaConf.save(config=conf, f=f)
             print(f"Generating experiment: {exp_name}")
-
 
 
 if __name__ == "__main__":
@@ -81,4 +117,24 @@ if __name__ == "__main__":
     exp_dir = os.path.join(project_root, "configs", "experiment")
 
     # Start generating experiment configurations
-    main(experiment_dir=exp_dir)
+    mse_path = "/home/aladin/latest/resilient_sfl/mse_files/mnli_mses"
+
+    main(experiment_dir=exp_dir, 
+         adversarial=True, 
+         noise_mode="per_round", 
+         mse_base_path=mse_path)
+    
+    main(experiment_dir=exp_dir, 
+         adversarial=False, 
+         noise_mode="per_round", 
+         mse_base_path=mse_path)
+    
+    main(experiment_dir=exp_dir, 
+         adversarial=True, 
+         noise_mode="per_batch", 
+         mse_base_path=mse_path)
+    
+    main(experiment_dir=exp_dir, 
+         adversarial=False, 
+         noise_mode="per_batch", 
+         mse_base_path=mse_path)
