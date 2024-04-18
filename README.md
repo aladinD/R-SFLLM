@@ -1,6 +1,6 @@
 <div align="center">
 
-# PHY Matters: On the Connection between Resilient Physical Layer Design and Split Federated Learning
+# R-SFL: A Jamming Resilient and Adversarially Robust Framework for Split Federated Learning with Large Language Models
 
 [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
 [![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020)
@@ -28,8 +28,7 @@ Clone repository and install dependencies
 git clone https://gitlab.lrz.de/aces/6g-life/resilience/resilient_sfl.git
 cd resilient_sfl
 
-# install resilient_comms and isac packages 
-# (contact aladin.djuhera@tum.de or vlad.andrei@tum.de for permissions)
+# install resilient_comms and isac packages (contact aladin.djuhera@tum.de or vlad.andrei@tum.de for permissions)
 pip install git+https://gitlab.lrz.de/aces/6g-life/resilience/resilient_comms.git
 pip install git+https://gitlab.lrz.de/aces/6g-life/integrated_sensing_and_communication.git
 
