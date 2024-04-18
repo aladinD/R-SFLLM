@@ -1,17 +1,24 @@
-import rootutils
-
-rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
-
-from src.utils.plotting import accumulate_client_metrics, accumulate_master_metrics
 import os
 import pandas as pd
+
 import matplotlib.pyplot as plt
-import os
 import yaml
+from matplotlib.image import imread
 from omegaconf import OmegaConf, DictConfig
+import tikzplotlib
+
 from typing import List, Dict, Optional
 
-import tikzplotlib
+import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+from src.utils.plotting import accumulate_client_metrics, accumulate_master_metrics
+
+
+# Enable LaTeX rendering in Matplotlib
+plt.rcParams['text.usetex'] = True
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = 'Computer Modern Roman'
+plt.rcParams['text.latex.preamble'] = r'\usepackage{amsmath}'
 
 
 def fetch_relevant_directories(main_dir: str, dataset: str, model: str) -> list:
@@ -66,6 +73,9 @@ def fetch_configuration(directory: str) -> DictConfig:
 
 
 def save_fig(f, save_path: str | os.PathLike, latex: bool = False, pdf: bool = False, **kwargs):
+    """
+    Saves the figure to the specified path with the given format options.
+    """
     stem = os.path.split(save_path)[0]
     if not os.path.isdir(stem):
         os.mkdir(stem)
@@ -121,13 +131,6 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
         relative_path = os.path.join(relative_path, 'logs/')  
         config.paths.log_path = os.path.join(main_dir, relative_path)
 
-        # Fetch the scenario from the config or tags.log
-        # scenario = config.tags[-2] if "tags" in config else None
-        # if not scenario:
-        #     with open(os.path.join(directory, "tags.log"), 'r') as file:
-        #         content = file.read()
-        #         tags = [tag.strip() for tag in content.strip("[]").split(",")]
-        #         scenario = tags[-1]
         # Fetch the scenario from the config or tags.log
         scenario = None
         if "tags" in config:
@@ -213,13 +216,11 @@ def generate_multiplot(main_dir: str, dataset: str, model: str, client_name="cli
     
     fig.suptitle(main_title, fontsize=main_title_fontsize)
     fig.text(0.5, 0.92, subtext, ha='center', va='center', fontsize=subtext_fontsize)
-    # fig.text(0.5, 0.92, 'Your Sub-Title Here', ha='center', va='center', fontsize=16)
 
     # Tight layout and save the multiplot
     plt.tight_layout()
 
     # Adjust spacing and layout
-    # plt.subplots_adjust(bottom=0.1)
     plt.subplots_adjust(bottom=0.1, top=0.85)
 
     plt.savefig(os.path.join(main_dir, plot_name))
@@ -255,13 +256,6 @@ def generate_multiplot_tikz(main_dir: str, dataset: str, model: str, client_name
         relative_path = os.path.join(relative_path, 'logs/')  
         config.paths.log_path = os.path.join(main_dir, relative_path)
 
-        # Fetch the scenario from the config or tags.log
-        # scenario = config.tags[-2] if "tags" in config else None
-        # if not scenario:
-        #     with open(os.path.join(directory, "tags.log"), 'r') as file:
-        #         content = file.read()
-        #         tags = [tag.strip() for tag in content.strip("[]").split(",")]
-        #         scenario = tags[-1]
         # Fetch the scenario from the config or tags.log
         scenario = None
         if "tags" in config:
@@ -300,9 +294,6 @@ def generate_multiplot_tikz(main_dir: str, dataset: str, model: str, client_name
         task = config.task_name
         if task == "sc":
             # Plot val metrics for client and master model for sequence classification
-            # ax.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name}', color='blue', linestyle='-', marker='o')
-            # ax.plot(master_val_df['epoch'], master_val_df['test_acc'], label='Global SFL Model', color='red', linestyle='-', marker='o')
-            
             ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_acc'].to_numpy(), label=f'{display_name}', color='blue', linestyle='-', marker='o')
             ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_acc'].to_numpy(), label='Global SFL Model', color='red', linestyle='-', marker='o')
 
@@ -311,10 +302,7 @@ def generate_multiplot_tikz(main_dir: str, dataset: str, model: str, client_name
             ax.set_ylabel('Accuracy', fontsize=12)
         
         elif task == "ner":
-            # Plot F1 score metrics for client and master model for NER            
-            # ax.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{client_name}', color='blue', linestyle='-', marker='o')
-            # ax.plot(master_val_df['epoch'], master_val_df['test_f1'], label='Global SFL Model', color='red', linestyle='-', marker='o')
-            
+            # Plot F1 score metrics for client and master model for NER              
             ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_f1'].to_numpy(), label=f'{display_name}', color='blue', linestyle='-', marker='o')
             ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_f1'].to_numpy(), label='Global SFL Model', color='red', linestyle='-', marker='o')
 
@@ -348,7 +336,6 @@ def generate_multiplot_tikz(main_dir: str, dataset: str, model: str, client_name
 
     # Add a single legend for the whole figure
     lines, labels = ax.get_legend_handles_labels()
-    # make legend text bigger
     
     fig.legend(lines, labels, loc='lower center', fancybox=True, shadow=True, ncol=2, fontsize=12)
 
@@ -377,18 +364,9 @@ def generate_multiplot_tikz(main_dir: str, dataset: str, model: str, client_name
     elif task == "ner":
         main_title = 'F1 Scores across Global Rounds and Epochs'
 
-    # fig.suptitle('Classification Accuracies across Global Rounds and Epochs', fontsize=20)
-    subtext = f"Model Type: {model}, Model Task: {model_task}, Dataset: {dataset_name}, Batch Size: {batch_size}, Number of Clients: {num_clients}, Number of Epochs: {num_epochs}, Number of SFL Rounds: {num_rounds}" 
-    
-    fig.suptitle(main_title, fontsize=main_title_fontsize)
-    fig.text(0.5, 0.92, subtext, ha='center', va='center', fontsize=subtext_fontsize)
-    # fig.text(0.5, 0.92, 'Your Sub-Title Here', ha='center', va='center', fontsize=16)
-
-    # Tight layout and save the multiplot
     plt.tight_layout()
 
     # Adjust spacing and layout
-    # plt.subplots_adjust(bottom=0.1)
     plt.subplots_adjust(bottom=0.1, top=0.85)
 
     # plt.savefig(os.path.join(main_dir, plot_name))
@@ -397,131 +375,6 @@ def generate_multiplot_tikz(main_dir: str, dataset: str, model: str, client_name
     print(tikz_save_path)
 
     save_fig(fig, save_path=main_dir, latex=True, pdf=True)
-
-
-def generate_joint_bar_plot(main_dir: str, 
-                            dataset: str, 
-                            model: str, 
-                            plot_data: str = "client", 
-                            client_name="client_0", 
-                            plot_name="barplot.png"):
-    """
-    Generate a joint bar plot for all subfolders that match the given dataset and model.
-    """
-    # Fetch all relevant directories based on the dataset and model
-    directories = fetch_relevant_directories(main_dir, dataset, model)
-    
-    # Create the main figure for the bar plot
-    fig, ax = plt.subplots(figsize=(15, 7))
-    
-    # Lists to store bar plot data
-    scenarios = []
-    client_metrics = []
-    master_metrics = []
-    
-    # Loop through each directory and accumulate data
-    for directory in directories:
-        # Fetch the configuration for the current directory
-        config = fetch_configuration(directory)
-
-        # Handle relative paths
-        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
-        relative_path = os.path.join(*relative_path_components[3:4])
-        relative_path = os.path.join(relative_path, 'logs/')  
-        config.paths.log_path = os.path.join(main_dir, relative_path)
-
-        # Handle potential errors while fetching scenario
-        try:
-            scenario = config.tags[-1] if "tags" in config else None
-            if not scenario:
-                with open(os.path.join(directory, "tags.log"), 'r') as file:
-                    content = file.read()
-                    tags = [tag.strip() for tag in content.strip("[]").split(",")]
-                    scenario = tags[-1]
-        except Exception as e:
-            print(f"Error fetching scenario for directory {directory}: {e}")
-            continue
-        
-        # Fetch metrics for the current directory
-        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
-        master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
-        
-        # Extracting task from the configuration
-        task = config.get("task_name", "")
-        
-        # Plot client data based on the task
-        label_mapping = {
-            "None": "Baseline Performance without the Wireless Channel",
-            "no_jammer": "No Jamming, only Wireless Impairments",
-            "no_protection": "Adversarial Jamming without Protection",
-            "w_protection": "Adversarial Jamming with Protection",
-        }
-
-        # label_scenario = label_mapping.get(scenario, scenario)
-        label_scenario = label_mapping.get(scenario, scenario).replace(", ", ",\n")
-
-        scenarios.append(label_scenario)
-        
-        # Accumulate metrics for bar plotting
-        if task == "sc":
-            client_metrics.append(client_val_df['val_acc'].iloc[-1]) 
-            master_metrics.append(master_val_df['test_acc'].iloc[-1])
-        elif task == "ner":
-            client_metrics.append(client_val_df['val_f1'].iloc[-1])
-            master_metrics.append(master_val_df['test_f1'].iloc[-1])
-
-    # Plotting bars
-    bar_width = 0.35
-    indices = list(range(len(scenarios)))
-    
-    if plot_data in ["client", "both"]:
-        ax.bar(indices, client_metrics, bar_width, label='Client Model', alpha=0.8)
-        
-    if plot_data in ["master", "both"]:
-        # If both client and master data are plotted, shift master bars to the right for clarity
-        if plot_data == "both":
-            indices = [i + bar_width for i in indices]
-        ax.bar(indices, master_metrics, bar_width, label='Global SFL Model', alpha=0.8)
-    
-    # Formatting
-    ax.set_ylim(0.4, 1)
-    ax.set_xlabel('Scenarios')
-    ax.set_ylabel('Metric Value')
-    ax.set_xticks([i + bar_width/2 for i in range(len(scenarios))])
-    # ax.set_xticklabels(scenarios, rotation=30, ha='right')
-    ax.set_xticklabels(scenarios, ha='center')
-
-    # Set title
-    main_title_fontsize = 16
-    subtitle_fontsize = 10
-    model = config.tags[1].split("_")[0]
-    model_task = "Sequence Classification" if task == "sc" else "Named Entity Recognition"
-    dataset_name = config.tags[0]
-    num_labels = config.model.config.num_labels
-    num_clients = config.sfl.num_clients
-    num_epochs = config.sfl.num_epochs
-    num_rounds = config.sfl.num_rounds
-
-    if task == "sc":
-        main_title = 'Classification Accuracies across Global Rounds and Epochs'
-
-    elif task == "ner":
-        main_title = 'F1 Scores across Global Rounds and Epochs'
-
-    subtitle = f"Model Type: {model}, Model Task: {model_task}, Dataset: {dataset_name}, Number of Labels: {num_labels}, Number of Clients: {num_clients}, Number of Epochs: {num_epochs}, Number of SFL Rounds: {num_rounds}"
-    plt.suptitle(main_title, fontsize=main_title_fontsize)  
-    plt.title(subtitle, fontsize=subtitle_fontsize)
-
-    ax.grid(True, alpha=0.5)
-    # ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), fancybox=True, shadow=True, ncol=4)
-    ax.legend(loc='upper right', fancybox=True, shadow=True, ncol=2)
-    plt.subplots_adjust(bottom=0.25)
-
-    # Adjust spacing and layout
-    plt.tight_layout()
-
-    plt.savefig(os.path.join(main_dir, plot_name))
-
 
 
 def generate_joint_plot(main_dir: str, 
@@ -632,7 +485,6 @@ def generate_joint_plot(main_dir: str,
     plt.title(subtitle, fontsize=subtitle_fontsize) 
 
     ax.grid(True, alpha=0.5)
-    # ax.legend(loc='lower center', fancybox=True, shadow=True, ncol=4)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), fancybox=True, shadow=True, ncol=4)
     plt.subplots_adjust(bottom=0.25)
 
@@ -643,7 +495,6 @@ def generate_joint_plot(main_dir: str,
     # plt.savefig(os.path.join(main_dir, plot_name))
     if not ax_provided:
         plt.savefig(os.path.join(main_dir, plot_name))
-
 
 
 def generate_joint_multiplot(main_dir: str,
@@ -778,128 +629,14 @@ def generate_joint_multiplot(main_dir: str,
     plt.savefig(os.path.join(save_dir, plot_name))
 
 
-
-def generate_joint_plot2(main_dir: str, 
-                        dataset: str, 
-                        model: str, 
-                        plot_data: str = "client", 
-                        client_name="client_0", 
-                        plot_name="jointplot.png",
-                        ax=None):
+def generate_single_plot_tikz(main_dir: str, 
+                              dataset: str, 
+                              model: str, 
+                              client_name="client_0", 
+                              plot_name="singleplot.png"):
     """
-    Generate a joint plot for all subfolders that match the given dataset and model.
+    Generate a single plot for all subfolders that match the given dataset and model.
     """
-    # Define known scenarios
-    known_scenarios = ["None", "no_jammer", "no_protection", "w_protection"]
-    markers = ['o', 'x', '+', '*']  # List of markers for distinct lines
-
-    # Fetch all relevant directories based on the dataset and model
-    directories = fetch_relevant_directories(main_dir, dataset, model)
-
-    # Create the main figure for the joint plot
-    ax_provided = True
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(12, 8)) # 15, 7
-        ax_provided = False
-
-    marker_index = 0 # Index to keep track of the marker to be used for the next line
-
-    # Loop through each directory and plot the data
-    for directory in directories:
-        # Fetch the configuration for the current directory
-        config = fetch_configuration(directory)
-
-        # Handle relative paths
-        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
-        relative_path = os.path.join(*relative_path_components[3:4])
-        relative_path = os.path.join(relative_path, 'logs/')  
-        config.paths.log_path = os.path.join(main_dir, relative_path)
-
-        # Fetch the scenario from the config or tags.log
-        scenario = None
-        if "tags" in config:
-            for tag in config.tags:
-                if tag in known_scenarios:
-                    scenario = tag
-                    break
-
-        if not scenario:
-            with open(os.path.join(directory, "tags.log"), 'r') as file:
-                content = file.read()
-                tags = [tag.strip() for tag in content.strip("[]").split(",")]
-                for tag in tags:
-                    if tag in known_scenarios:
-                        scenario = tag
-                        break
-
-        if scenario is None:
-            print(f"Scenario not found for directory {directory}")
-            continue
-
-        # Fetch metrics for the current directory
-        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
-        master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
-        
-        # Extracting task from the configuration
-        task = config.task_name
-        
-        # Plotting logic
-        label_scenario = scenario
-
-        # Marker
-        current_marker = markers[marker_index % len(markers)]
-        marker_index += 1
-
-        if plot_data in ["client", "both"]:
-            if task == "sc":
-                ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_acc'].to_numpy(), label=f'Client {label_scenario}', linestyle='-', marker=current_marker)
-            elif task == "ner":
-                ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_f1'].to_numpy(), label=f'Client {label_scenario}', linestyle='-', marker=current_marker)
-        
-        if plot_data in ["master", "both"]:
-            if task == "sc":
-                ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_acc'].to_numpy(), label=f'Master {label_scenario}', linestyle='--', marker=current_marker)
-            elif task == "ner":
-                ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_f1'].to_numpy(), label=f'Master {label_scenario}', linestyle='--', marker=current_marker)
-
-
-
-
-    # Set axis parameters and labels
-    ax.set_ylim(0.4, 1)
-    ax.set_xlabel('Cumulative Epochs')
-    ax.set_ylabel('Accuracy' if task == "sc" else 'F1 Score')
-    ax.grid(True, alpha=0.5)
-
-    # ax.set_aspect('equal', adjustable='box')
-
-    # Set title and legend
-    main_title_fontsize = 16
-    subtitle_fontsize = 10
-    model_name = config.tags[1].split("_")[0]
-    model_task = "Sequence Classification" if task == "sc" else "Named Entity Recognition"
-    dataset_name = config.tags[0]
-    num_labels = config.model.config.num_labels
-    num_clients = config.sfl.num_clients
-    num_epochs = config.sfl.num_epochs
-    num_rounds = config.sfl.num_rounds
-
-    main_title = 'Classification Accuracies across Global Rounds and Epochs' if task == "sc" else 'F1 Scores across Global Rounds and Epochs'
-    subtitle = f"Model Type: {model_name}, Model Task: {model_task}, Dataset: {dataset_name}, Number of Labels: {num_labels}, Number of Clients: {num_clients}, Number of Epochs: {num_epochs}, Number of SFL Rounds: {num_rounds}"
-    plt.suptitle(main_title, fontsize=main_title_fontsize)  
-    plt.title(subtitle, fontsize=subtitle_fontsize) 
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.10), fancybox=True, shadow=True, ncol=4)
-
-    # Adjust spacing and layout
-    plt.subplots_adjust(bottom=0.25)
-    plt.tight_layout()
-
-    # Save the plot
-    if not ax_provided:
-        plt.savefig(os.path.join(main_dir, plot_name))
-
-
-def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_name="client_0", plot_name="singleplot.png"):
     # Define known scenarios
     known_scenarios = ["None", "no_jammer", "no_protection", "w_protection"]
 
@@ -920,13 +657,6 @@ def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_na
         config.paths.log_path = os.path.join(main_dir, relative_path)
 
         # Fetch the scenario from the config or tags.log
-        # scenario = config.tags[-2] if "tags" in config else None
-        # if not scenario:
-        #     with open(os.path.join(directory, "tags.log"), 'r') as file:
-        #         content = file.read()
-        #         tags = [tag.strip() for tag in content.strip("[]").split(",")]
-        #         scenario = tags[-1]
-        # Fetch the scenario from the config or tags.log
         scenario = None
         if "tags" in config:
             for tag in config.tags:
@@ -942,9 +672,6 @@ def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_na
                     if tag in known_scenarios:
                         scenario = tag
                         break
-
-        # Determine the current subplot axis
-        # ax = axes[idx // cols, idx % cols] if rows > 1 else axes[idx % cols]
 
         # Plot the metrics for the current directory on the single subplot axis
         client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
@@ -960,8 +687,6 @@ def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_na
         # Apply client mapping to client_name
         display_name = client_mapping.get(client_name, client_name)
 
-        # [existing code to apply client mapping and extract parameters from the configuration]
-
         # Add plots to the single axis
         task = config.task_name
         if task == "sc":
@@ -974,7 +699,6 @@ def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_na
             ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_f1'].to_numpy(), label=f'Global SFL Model ({scenario})', linestyle='-', marker='o')
 
             ax.set_ylabel('F1 Score', fontsize=12)
-        # [existing code to adjust axis properties]
 
     # Set labels for the single axis
     ax.set_ylim(0.4, 1)
@@ -988,12 +712,8 @@ def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_na
     # ax.set_xlabel('Cumulative Epochs')
     ax.grid(True, alpha=1)
     
-    # Add a legend for the whole figure
-    # ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=2, fontsize=12)
-
     # Add a single legend for the whole figure
     lines, labels = ax.get_legend_handles_labels()
-    # make legend text bigger
     
     fig.legend(lines, labels, loc='lower center', fancybox=True, shadow=True, ncol=2, fontsize=12)
 
@@ -1039,31 +759,77 @@ def generate_single_plot_tikz(main_dir: str, dataset: str, model: str, client_na
     save_fig(fig, save_path=os.path.join(main_dir, plot_name), latex=True, pdf=True)
 
 
+def arrange_plots_into_large_figure(plot_paths: list, output_path: str):
+    """
+    Arrange given PNG plot paths into a large 5x2 layout and save as a single image.
+    
+    Args:
+    - plot_paths (list): List of paths to the PNG plot files.
+    - output_path (str): Path where the resulting large plot should be saved.
+    """
+    # Create a 5x2 subplot layout
+    fig, axes = plt.subplots(5, 2, figsize=(20, 40))  # Adjust the figure size as needed
+    plt.subplots_adjust(hspace=0.0, wspace=0.0)  # Adjust spacing as needed
+    
+    for idx, plot_path in enumerate(plot_paths):
+        ax = axes[idx // 2, idx % 2]
+        img = imread(plot_path)
+        ax.imshow(img)
+        ax.axis('off')  # Hide the axis
+    
+    # Save the large figure to the specified output path
+    plt.savefig(output_path + "/plot.png", bbox_inches='tight')
+    plt.close(fig)  # Close the figure to free memory
+    print(f"Large plot arranged and saved to {output_path}")
 
-def generate_single_plot_tikz2(main_dir: str, dataset: str, model: str, client_name="client_0", plot_name="singleplot.png"):
-    # Define known scenarios
-    known_scenarios = ["None", "no_jammer", "no_protection", "w_protection"]
 
-    # Color and marker scheme for clients
-    client_colors = {
-        "client_0": "blue",
-        "client_1": "green",
-        "client_2": "red"
-    }
-    client_markers = {
-        "client_0": "s",  # square marker
-        "client_1": "^",  # triangle marker
-        "client_2": "x"   # x marker
+def generate_jointplot_tikz(main_dir: str, 
+                            dataset: str, 
+                            model: str, 
+                            client_name="client_0", 
+                            plot_name="jointplot.png", 
+                            lims: list = [0.4, 1]):
+    """
+    Generate a joint plot for all subfolders that match the given dataset and model, using LaTeX font.
+    """
+    # Font size configuration
+    common_font_size = 16
+    axis_ticks_font_size = 16
+
+    # Define known scenarios and their display names
+    scenario_display_names = {
+        "None": "SFL Baseline",
+        "no_jammer": "Gaussian",
+        "no_protection": "No Protection",
+        "w_protection": "Protection"
     }
 
     # Fetch all relevant directories based on the dataset and model
     directories = fetch_relevant_directories(main_dir, dataset, model)
 
-    # Create the main figure for the single plot
+    # Create the main figure for joint plot
     fig, ax = plt.subplots(figsize=(15, 10))
 
+    colors = ['blue', 'red', 'green', 'purple', 'orange', 'brown']
+    client_mapping = {
+        "client_0": "Client 1",
+        "client_1": "Client 2",
+        "client_2": "Client 3",
+    }
+
+    # Assume configuration is the same for all directories
+    if directories:
+        config = fetch_configuration(directories[0])
+
+    model_name = config.tags[1].split("_")[0]
+    model_task = "Sequence Classification" if config.task_name == "sc" else "Named Entity Recognition"
+    dataset_name = config.tags[0]
+    num_labels = config.model.config.num_labels
+    num_clients = config.sfl.num_clients
+    num_epochs = config.sfl.num_epochs
+    num_rounds = config.sfl.num_rounds
+
     for idx, directory in enumerate(directories):
-        # Fetch the configuration for the current directory
         config = fetch_configuration(directory)
 
         # Handle relative paths
@@ -1072,11 +838,10 @@ def generate_single_plot_tikz2(main_dir: str, dataset: str, model: str, client_n
         relative_path = os.path.join(relative_path, 'logs/')  
         config.paths.log_path = os.path.join(main_dir, relative_path)
 
-        # Fetch the scenario from the config or tags.log
         scenario = None
         if "tags" in config:
             for tag in config.tags:
-                if tag in known_scenarios:
+                if tag in scenario_display_names:
                     scenario = tag
                     break
 
@@ -1085,143 +850,374 @@ def generate_single_plot_tikz2(main_dir: str, dataset: str, model: str, client_n
                 content = file.read()
                 tags = [tag.strip() for tag in content.strip("[]").split(",")]
                 for tag in tags:
-                    if tag in known_scenarios:
+                    if tag in scenario_display_names:
                         scenario = tag
                         break
 
-        # Determine the current subplot axis
-        # ax = axes[idx // cols, idx % cols] if rows > 1 else axes[idx % cols]
-
-        # Plot the metrics for the current directory on the single subplot axis
         client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
         master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
 
-        # Apply client mapping to client_name and determine colors and markers
-        # CLient mapping
-        client_mapping = {
-            "client_0": "Client 1",
-            "client_1": "Client 2",
-            "client_2": "Client 3",
-        }
-
         display_name = client_mapping.get(client_name, client_name)
-        client_color = client_colors.get(client_name, "black")
-        client_marker = client_markers.get(client_name, ".")
 
-        # [Existing code to apply client mapping and extract parameters from the configuration]
-        task = config.task_name
+        color = colors[idx % len(colors)]
 
-        # Add plots to the single axis
-        if task == "sc":
-            ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_acc'].to_numpy(), label=f'{display_name} ({scenario})', linestyle='-', marker=client_marker, color=client_color)
-            ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_acc'].to_numpy(), label=f'Global SFL Model ({scenario})', linestyle='-', marker='o', markersize=8, color=client_color, alpha=0.7)
-            ax.set_ylabel('Accuracy', fontsize=12)
-        
-        elif task == "ner":
-            ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_f1'].to_numpy(), label=f'{display_name} ({scenario})', linestyle='-', marker=client_marker, color=client_color)
-            ax.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_f1'].to_numpy(), label=f'Global SFL Model ({scenario})', linestyle='-', marker='o', markersize=8, color=client_color, alpha=0.7)
+        if config.task_name == "sc":
+            ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_acc'].to_numpy(), label=f'{display_name} - {scenario_display_names[scenario]}', color=color, linestyle='-', marker='o')
+            ax.set_ylabel('Accuracy', fontsize=common_font_size)
+        elif config.task_name == "ner":
+            ax.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_f1'].to_numpy(), label=f'{display_name} - {scenario_display_names[scenario]}', color=color, linestyle='-', marker='o')
+            ax.set_ylabel('F1 Score', fontsize=common_font_size)
 
-            ax.set_ylabel('F1 Score', fontsize=12)
+        ax.set_ylim(lims)
 
-        # [Existing code to adjust axis properties]
 
-    # Set labels for the single axis
-    ax.set_ylim(0.4, 1)
-    
-    # Size adjustments
-    ax.tick_params(axis='x', labelsize=12)
-    ax.tick_params(axis='y', labelsize=12)
+    ax.tick_params(axis='both', labelsize=axis_ticks_font_size)
 
-    ax.set_xlabel('Cumulative Epochs', fontsize=12)
+    main_title = 'Classification Accuracies across Global Rounds and Epochs' if config.task_name == "sc" else 'F1 Scores across Global Rounds and Epochs'
+    subtitle = f"Model Type: {model_name}, Model Task: {model_task}, Dataset: {dataset_name}, Number of Labels: {num_labels}, Number of Clients: {num_clients}, Number of Epochs: {num_epochs}, Number of SFL Rounds: {num_rounds}"
 
-    # ax.set_xlabel('Cumulative Epochs')
+    main_title_fontsize = 32
+    subtitle_fontsize = 14
+    # plt.suptitle(main_title,fontsize=main_title_fontsize)
+    # plt.title(subtitle, fontsize=subtitle_fontsize)
+    plt.title(main_title, fontsize=main_title_fontsize, pad=20)
+
+    ax.set_xlabel('Cumulative Epochs', fontsize=common_font_size)
     ax.grid(True, alpha=1)
-    
-    # Add a legend for the whole figure
-    # ax.legend(loc='lower center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=2, fontsize=12)
 
-    # Add a single legend for the whole figure
-    lines, labels = ax.get_legend_handles_labels()
-    # make legend text bigger
-    
-    fig.legend(lines, labels, loc='lower center', fancybox=True, shadow=True, ncol=2, fontsize=12)
+    # Position the legend outside the plot
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), fancybox=True, shadow=True, ncol=4, fontsize=common_font_size)
 
-    # Title
-    main_title_fontsize = 20
-    subtext_fontsize = 12
-    model = config.tags[1].split("_")[0]
-    model_task = "Sequence Classification" if task == "sc" else "Named Entity Recognition"
-    dataset_name = config.tags[0]
-
-    # make adataset name all capital
-    dataset_name = dataset_name.upper()
-
-    # make model name all capital
-    model = model.upper()
-
-    num_labels = config.model.config.num_labels
-    num_clients = config.sfl.num_clients
-    num_epochs = config.sfl.num_epochs
-    num_rounds = config.sfl.num_rounds
-    batch_size = config.datamodule.batch_size
-
-    if task == "sc":
-        main_title = 'Classification Accuracies across Global Rounds and Epochs'
-
-    elif task == "ner":
-        main_title = 'F1 Scores across Global Rounds and Epochs'
-
-    # fig.suptitle('Classification Accuracies across Global Rounds and Epochs', fontsize=20)
-    subtext = f"Model Type: {model}, Model Task: {model_task}, Dataset: {dataset_name}, Batch Size: {batch_size}, Number of Clients: {num_clients}, Number of Epochs: {num_epochs}, Number of SFL Rounds: {num_rounds}" 
-    
-    fig.suptitle(main_title, fontsize=main_title_fontsize)
-    fig.text(0.5, 0.92, subtext, ha='center', va='center', fontsize=subtext_fontsize)
-
-    # Adjust layout
+    # Tight layout and save the joint plot
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.15, top=0.85)
+    plt.subplots_adjust(bottom=0.25, top=0.85)
 
-    # Save the single plot
-    tikz_save_path = os.path.join(main_dir, "singleplot.tex")
+    tikz_save_path = os.path.join(main_dir, "jointplot.tex")
     tikzplotlib.save(tikz_save_path)
     print(tikz_save_path)
-    save_fig(fig, save_path=os.path.join(main_dir, plot_name), latex=True, pdf=True)
+
+    save_fig(fig, os.path.join(main_dir, plot_name), latex=True, pdf=True)
 
 
+def plot_on_axes(ax, main_dir, dataset, model, client_name, lims, title, caption, common_font_size=16):
+    scenario_display_names = {
+        "None": "SFL Baseline",
+        "no_jammer": "Gaussian",
+        "no_protection": "No Protection",
+        "w_protection": "Protection"
+    }
+
+    directories = fetch_relevant_directories(main_dir, dataset, model)
+    # colors = ['blue', 'red', 'green', 'purple', 'orange', 'brown']
+    colors = ['blue', 'orange', 'red', 'green', 'purple', 'brown']
+    client_mapping = {
+        "client_0": "Client 1",
+        "client_1": "Client 2",
+        "client_2": "Client 3",
+    }
+
+    if directories:
+        config = fetch_configuration(directories[0])
+
+    for idx, directory in enumerate(directories):
+        config = fetch_configuration(directory)
+
+        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
+        relative_path = os.path.join(*relative_path_components[3:4])
+        relative_path = os.path.join(relative_path, 'logs/')  
+        config.paths.log_path = os.path.join(main_dir, relative_path)
+
+        scenario = None
+        if "tags" in config:
+            for tag in config.tags:
+                if tag in scenario_display_names:
+                    scenario = tag
+                    break
+
+        client_train_df, client_val_df = accumulate_client_metrics(config, client_name + "_logger", config.paths.log_path)
+
+        display_name = client_mapping.get(client_name, client_name)
+        color = colors[idx % len(colors)]
+
+        task_label = 'Accuracy' if config.task_name == "sc" else 'F1 Score'
+        metric_data = client_val_df['val_acc'] if config.task_name == "sc" else client_val_df['val_f1']
+
+        # ax.plot(client_val_df['epoch'].to_numpy(), metric_data.to_numpy(), label=f'{display_name} - {scenario_display_names[scenario]}', color=color, linestyle='-', marker='o')
+        ax.plot(client_val_df['epoch'].to_numpy(), metric_data.to_numpy(), label=f'{scenario_display_names[scenario]}', color=color, linestyle='-', marker='o')
+        ax.set_ylabel(task_label, fontsize=common_font_size)
+        # ax.set_title(title, fontsize=common_font_size, pad=20)
+
+    ax.set_ylim(lims)
+    ax.tick_params(axis='both', labelsize=common_font_size)
+    ax.grid(True, alpha=1)
+    ax.set_xlabel('Cumulative Epochs', fontsize=common_font_size)
+    # ax.set_xlabel(caption, fontsize=common_font_size - 2)  # Slightly smaller font for caption
+    ax.text(0.5, -0.25, caption, fontsize=common_font_size - 2, fontweight='bold', ha='center', va='top', transform=ax.transAxes)
+
+
+def plot_global_on_axes(ax, main_dir, dataset, model, lims, title, caption, common_font_size=16):
+    scenario_display_names = {
+        "None": "SFL Baseline",
+        "no_jammer": "Gaussian",
+        "no_protection": "No Protection",
+        "w_protection": "Protection"
+    }
+
+    directories = fetch_relevant_directories(main_dir, dataset, model)
+    colors = ['blue', 'orange', 'red', 'green', 'purple', 'brown']
+
+    if directories:
+        config = fetch_configuration(directories[0])
+
+    for idx, directory in enumerate(directories):
+        config = fetch_configuration(directory)
+
+        relative_path_components = config.paths.client_log_path.split('/logs/', 1)[-1].split("/")
+        relative_path = os.path.join(*relative_path_components[3:4])
+        relative_path = os.path.join(relative_path, 'logs/')  
+        config.paths.log_path = os.path.join(main_dir, relative_path)
+
+        master_train_df, master_val_df = accumulate_master_metrics(config, config.paths.log_path)
+
+        scenario = None
+        if "tags" in config:
+            for tag in config.tags:
+                if tag in scenario_display_names:
+                    scenario = tag
+                    break
+
+        color = colors[idx % len(colors)]
+
+        task_label = 'Accuracy' if config.task_name == "sc" else 'F1 Score'
+        metric_data = master_val_df['test_acc'] if config.task_name == "sc" else master_val_df['test_f1']
+
+        # ax.plot(master_val_df['epoch'].to_numpy(), metric_data.to_numpy(), label=f'Global SFL Model - {scenario_display_names[scenario]}', color=color, linestyle='-', marker='o')
+        ax.plot(master_val_df['epoch'].to_numpy(), metric_data.to_numpy(), label=f'{scenario_display_names[scenario]}', color=color, linestyle='-', marker='o')
+        ax.set_ylabel(task_label, fontsize=common_font_size)
+
+    ax.set_ylim(lims)
+    # ax.set_title(title, fontsize=common_font_size, pad=20)
+    ax.tick_params(axis='both', labelsize=common_font_size)
+    ax.grid(True, alpha=1)
+    ax.set_xlabel('Cumulative Epochs', fontsize=common_font_size)
+    ax.text(0.5, -0.25, caption, fontsize=common_font_size - 2, ha='center', va='top', transform=ax.transAxes, fontweight='bold')
+
+
+def generate_3x2_figure(main_dirs, datasets, models, client_names, lims, titles, captions, common_font_size=16):
+    fig, axes = plt.subplots(3, 2, figsize=(30, 20))
+
+    for i, ax in enumerate(axes.flatten()):
+        if i < len(main_dirs):
+            plot_on_axes(ax, main_dirs[i], datasets[i], models[i], client_names[i], lims[i], titles[i], captions[i], common_font_size)
+        else:
+            ax.axis('off')
+
+    # plt.tight_layout()
+    plt.subplots_adjust(hspace=0.3, wspace=0.15, bottom=0.1, top=0.9)  # Adjust the spacing
+
+    lines, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(lines, labels, loc='lower center', ncol=4, fontsize=common_font_size)
+
+    tikz_save_path = "combined_3x2_plot.tex"
+    tikzplotlib.save(tikz_save_path)
+
+    print(tikz_save_path)
+
+    save_fig(fig, os.path.join("/home/aladin/latest/resilient_sfl", tikz_save_path), latex=True, pdf=True)
+
+
+def generate_5x2_figure(main_dirs, datasets, models, client_names, lims, titles, captions, common_font_size=16, master: bool=False):
+    fig, axes = plt.subplots(5, 2, figsize=(30, 30))  # Changed to 5x2 grid
+
+    for i, ax_row in enumerate(axes):
+        for j, ax in enumerate(ax_row):
+            index = i * 2 + j  # Calculate the index for the current subplot
+            if index < len(main_dirs):
+                if master:
+                    plot_global_on_axes(ax, main_dirs[index], datasets[index], models[index], lims[index], titles[index], captions[index], common_font_size)
+                else:
+                    plot_on_axes(ax, main_dirs[index], datasets[index], models[index], client_names[index], lims[index], titles[index], captions[index], common_font_size)
+            else:
+                ax.axis('off')
+
+    plt.subplots_adjust(hspace=0.45, wspace=0.15, bottom=0.09, top=0.9)  # Adjust the spacing
+
+    # Since this figure will be larger, ensure the legend is appropriately placed
+    lines, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(lines, labels, loc='lower center', ncol=4, fontsize=common_font_size)
+
+    tikz_save_path = "combined_5x2_plot.tex"
+    tikzplotlib.save(tikz_save_path)
+
+    print(tikz_save_path)
+
+    save_fig(fig, os.path.join("/home/aladin/latest/resilient_sfl", tikz_save_path), latex=True, pdf=True)
 
 
 if __name__ == "__main__":
 
-    # generate_joint_multiplot(main_dir='/home/shared/plotting',
-    #                         base_model='bert',
-    #                         sc_datasets=['sst2', 'mrpc'],
-    #                         ner_datasets=['wnut_17', 'conll2003'],
-    #                         plot_data='client',
-    #                         client_name="client_0",
-    #                         plot_name="joint_multiplot_bert_.png")
-    
-    generate_multiplot_tikz(
-        main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/mnli_latest/mnli_roberta_per_round_adversarial_bs64', 
-        dataset='mnli', 
-        model='roberta_for_sequence_classification',
-        client_name="client_0",
-        plot_name="multiplot_mnli_roberta.png"
-        )
-    
-    # generate_joint_plot2(main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_round_adversarial_bs64', 
-    #                    dataset='sst2', 
-    #                    plot_data='master',
-    #                    model='bert_for_sequence_classification',
-    #                    client_name="client_0",
-    #                    plot_name="jointplot_sst2_bert.png")
-
-
-    # generate_single_plot_tikz2(
-    #     main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_round_adversarial_bs64', 
+    # generate_multiplot_tikz(
+    #     main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64', 
     #     dataset='sst2', 
     #     model='bert_for_sequence_classification',
     #     client_name="client_0",
-    #     plot_name="singleplot_sst2_bert.png")
+    #     plot_name="sst2_bert_per_batch_adversarial.png"
+    #     )
+
+    # generate_jointplot_tikz(
+    #     main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64', 
+    #     dataset='sst2', 
+    #     model='bert_for_sequence_classification',
+    #     lims = [0.4, 1],
+    #     client_name="client_0",
+    #     plot_name="sst2_bert_per_batch_adversarial.png"
+    #     )
+    
+    # generate_single_plot_tikz(
+    # main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_round_adversarial_bs64', 
+    # dataset='sst2', 
+    # model='bert_for_sequence_classification',
+    # client_name="client_0",
+    # plot_name="singleplot_sst2_bert.png")
+
+    # 3x2 plot
+    main_dirs = ['/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/mnli_latest/mnli_roberta_per_batch_adversarial_bs64',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/qnli_latest/qnli_bert_per_batch_adversarial_bs32',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/qnli_latest/qnli_roberta_per_batch_adversarial_bs32',
+                 '/home/aladin/latest/resilient_sfl/logs/ner/multiruns/wnut_latest/wnut_bert_per_batch_adversarial_bs4',
+                 '/home/aladin/latest/resilient_sfl/logs/ner/multiruns/wnut_latest/wnut_roberta_per_batch_adversarial_bs4'
+    ]
+
+    datasets = ['sst2', 'mnli', 'qnli', 'qnli', 'wnut_17', 'wnut_17']
+    models = ['bert_for_sequence_classification', 
+              'roberta_for_sequence_classification', 
+              'bert_for_sequence_classification', 
+              'roberta_for_sequence_classification', 
+              'bert_for_token_classification', 
+              'roberta_for_token_classification'] 
+    
+    client_names = ['client_0', 
+                    'client_0', 
+                    'client_0', 
+                    'client_0', 
+                    'client_0', 
+                    'client_2']
+    
+    lims = [[0.4, 1],
+            [0.2, 1],
+            [0.4, 1],
+            [0.4, 1],
+            [0.1, 0.7],
+            [0.1, 0.7]
+            ]
+    
+    titles = ['Test1',
+                'Test2',
+                'Test3',
+                'Test4',
+                'Test5',
+                'Test6']
+    
+    captions = ['a) Fine-Tuning BERT on SST2 (Client 1 Results)',
+                'b) Fine-Tuning RoBERTa on MNLI (Client 1 Results)',
+                'c) Fine-Tuning BERT on QNLI (Client 1 Results)',
+                'd) Fine-Tuning RoBERTa on QNLI (Client 1 Results)',
+                'e) Fine-Tuning BERT on WNUT17 (Client 1 Results)',
+                'f) Fine-Tuning RoBERTa on WNUT17 (Client 3 Results)']
+
+    generate_3x2_figure(main_dirs, 
+                        datasets, 
+                        models, 
+                        client_names, 
+                        lims, 
+                        titles,
+                        captions,
+                        common_font_size=25)
     
 
+    # 5x2 plot
+    main_dirs = ['/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_roberta_per_batch_adversarial_bs64',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/mnli_latest/mnli_bert_per_batch_adversarial_bs64',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/mnli_latest/mnli_roberta_per_batch_adversarial_bs64',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/qnli_latest/qnli_bert_per_batch_adversarial_bs32',
+                 '/home/aladin/latest/resilient_sfl/logs/sc/multiruns/qnli_latest/qnli_roberta_per_batch_adversarial_bs32',
+                 '/home/aladin/latest/resilient_sfl/logs/ner/multiruns/conll_latest/conll_bert_per_batch_adversarial_bs16',
+                 '/home/aladin/latest/resilient_sfl/logs/ner/multiruns/conll_latest/conll_roberta_per_batch_adversarial_bs16',
+                 '/home/aladin/latest/resilient_sfl/logs/ner/multiruns/wnut_latest/wnut_bert_per_batch_adversarial_bs4',
+                 '/home/aladin/latest/resilient_sfl/logs/ner/multiruns/wnut_latest/wnut_roberta_per_batch_adversarial_bs4'
+    ]
+
+    datasets = ['sst2', 'sst2', 'mnli', 'mnli', 'qnli', 'qnli', 'conll', 'conll', 'wnut_17', 'wnut_17']
+    models = ['bert_for_sequence_classification', 
+              'roberta_for_sequence_classification', 
+              'bert_for_sequence_classification', 
+              'roberta_for_sequence_classification',
+              'bert_for_sequence_classification', 
+              'roberta_for_sequence_classification',
+              'bert_for_token_classification', 
+              'roberta_for_token_classification',
+              'bert_for_token_classification', 
+              'roberta_for_token_classification'] 
     
+    client_names = ['client_0', 
+                    'client_0', 
+                    'client_0', 
+                    'client_0', 
+                    'client_0', 
+                    'client_0',
+                    'client_0', 
+                    'client_0',
+                    'client_0', 
+                    'client_1']
+    
+    lims = [[0.4, 1],
+            [0.4, 1],
+
+            [0.2, 1],
+            [0.2, 1],
+
+            [0.4, 1],
+            [0.4, 1],
+
+            [0, 1],
+            [0, 1],
+
+            [0, 0.7],
+            [0, 0.7]
+            ]
+    
+    
+    titles = ['Test1',
+                'Test2',
+                'Test3',
+                'Test4',
+                'Test5',
+                'Test6',
+                'Test7',
+                'Test8',
+                'Test9',
+                'Test10']
+    
+    captions = ['a) Results for Fine-Tuning BERT on SST2',
+                'b) Results for Fine-Tuning RoBERTa on SST2',
+                'c) Results for Fine-Tuning BERT on MNLI',
+                'd) Results for Fine-Tuning RoBERTa on MNLI',
+                'e) Results for Fine-Tuning BERT on QNLI',
+                'f) Results for Fine-Tuning RoBERTa on QNLI',
+                'g) Results for Fine-Tuning BERT on CONLL2003',
+                'h) Results for Fine-Tuning RoBERTa on CONLL2003',
+                'i) Results for Fine-Tuning BERT on WNUT17',
+                'j) Results for Fine-Tuning RoBERTa on WNUT17']
+    
+
+    generate_5x2_figure(main_dirs, 
+                        datasets, 
+                        models, 
+                        client_names, 
+                        lims, 
+                        titles,
+                        captions,
+                        common_font_size=25,
+                        master=True)
