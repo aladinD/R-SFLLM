@@ -51,10 +51,19 @@ Run SFL training with chosen experiment configuration from [configs/experiment/]
 
 ```bash
 python src/run.py experiment=experiment_name.yaml
+
+# Single experiment
+python src/run.py -m experiment=experiment.yaml
+
+# Multiple experiments
+python src/run.py -m experiment=experiment_1.yaml,experiment_2.yaml
+
+# Multiple similar experiments from a list (e.g. experiment_1.yaml, experiment_2.yaml, ...)
+python src/run.py -m experiment='glob(experiment_*)'
 ```
 
 You can override any parameter from the command line like this
 
 ```bash
-python src/run.py trainer.max_epochs=20 datamodule.batch_size=64
+python src/run.py -m experiment=experiment.yaml trainer.max_epochs=20 datamodule.batch_size=64
 ```
