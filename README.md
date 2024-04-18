@@ -1,6 +1,6 @@
 <div align="center">
 
-# TESTR-SFL: A Jamming Resilient and Adversarially Robust Framework for Split Federated Learning with Large Language Models
+# R-SFL: A Jamming Resilient and Adversarially Robust Framework for Split Federated Learning with Large Language Models
 
 [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
 [![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020)
