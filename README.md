@@ -50,8 +50,6 @@ python src/run.py trainer=gpu
 Run SFL training with chosen experiment configuration from [configs/experiment/](configs/experiment/)
 
 ```bash
-python src/run.py experiment=experiment_name.yaml
-
 # Single experiment
 python src/run.py -m experiment=experiment.yaml
 
