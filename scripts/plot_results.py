@@ -1056,13 +1056,13 @@ def generate_5x2_figure(main_dirs, datasets, models, client_names, lims, titles,
 
 if __name__ == "__main__":
 
-    # generate_multiplot_tikz(
-    #     main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64', 
-    #     dataset='sst2', 
-    #     model='bert_for_sequence_classification',
-    #     client_name="client_0",
-    #     plot_name="sst2_bert_per_batch_adversarial.png"
-    #     )
+    generate_multiplot_tikz(
+        main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64', 
+        dataset='sst2', 
+        model='bert_for_sequence_classification',
+        client_name="client_0",
+        plot_name="sst2_bert_per_batch_adversarial_NEW.png"
+        )
 
     # generate_jointplot_tikz(
     #     main_dir='/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64', 
@@ -1079,6 +1079,9 @@ if __name__ == "__main__":
     # model='bert_for_sequence_classification',
     # client_name="client_0",
     # plot_name="singleplot_sst2_bert.png")
+
+
+
 
     # 3x2 plot
     main_dirs = ['/home/aladin/latest/resilient_sfl/logs/sc/multiruns/sst2_latest/sst2_bert_per_batch_adversarial_bs64',
