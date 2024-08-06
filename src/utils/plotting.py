@@ -195,13 +195,13 @@ def plot_metrics(cfg: DictConfig,
 
     if task == "sc":
         # Plot val metrics for client and master model for sequence classification
-        plt.plot(client_val_df['epoch'], client_val_df['val_acc'], label=f'{client_name.replace("_logger", "")} per epoch val accuracies', color='blue', linestyle='-', marker='o')
-        plt.plot(master_val_df['epoch'], master_val_df['test_acc'], label='global val accuracy after each round', color='red', linestyle='-', marker='o')
+        plt.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_acc'].to_numpy(), label=f'{client_name.replace("_logger", "")} per epoch val accuracies', color='blue', linestyle='-', marker='o')
+        plt.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_acc'].to_numpy(), label='global val accuracy after each round', color='red', linestyle='-', marker='o')
 
         # Plot acc metrics for client and master model
         if plot_train_metrics:
-            plt.plot(client_train_df['epoch'], client_train_df['train_acc'], label=f'{client_name.replace("_logger", "")} per epoch train accuracies', linestyle='-', marker='o')
-            plt.plot(master_train_df['epoch'], master_train_df['test_acc'], label='global train accuracy after each round', linestyle='-', marker='o')
+            plt.plot(client_train_df['epoch'].to_numpy(), client_train_df['train_acc'].to_numpy(), label=f'{client_name.replace("_logger", "")} per epoch train accuracies', linestyle='-', marker='o')
+            plt.plot(master_train_df['epoch'].to_numpy(), master_train_df['test_acc'].to_numpy(), label='global train accuracy after each round', linestyle='-', marker='o')
     
         # Labels and titles
         plt.ylabel('Accuracy')
@@ -213,13 +213,13 @@ def plot_metrics(cfg: DictConfig,
 
     elif task == "ner":
         # Plot F1 score metrics for client and master model for NER
-        plt.plot(client_val_df['epoch'], client_val_df['val_f1'], label=f'{client_name.replace("_logger", "")} per epoch val F1', color='blue', linestyle='-', marker='o')
-        plt.plot(master_val_df['epoch'], master_val_df['test_f1'], label='global val F1 after each round', color='red', linestyle='-', marker='o')
+        plt.plot(client_val_df['epoch'].to_numpy(), client_val_df['val_f1'].to_numpy(), label=f'{client_name.replace("_logger", "")} per epoch val F1', color='blue', linestyle='-', marker='o')
+        plt.plot(master_val_df['epoch'].to_numpy(), master_val_df['test_f1'].to_numpy(), label='global val F1 after each round', color='red', linestyle='-', marker='o')
 
         # Plot F1 score for training metrics
         if plot_train_metrics:
-            plt.plot(client_train_df['epoch'], client_train_df['train_f1'], label=f'{client_name.replace("_logger", "")} per epoch train F1', linestyle='-', marker='o')
-            plt.plot(master_train_df['epoch'], master_train_df['test_f1'], label='global train F1 after each round', linestyle='-', marker='o')
+            plt.plot(client_train_df['epoch'].to_numpy(), client_train_df['train_f1'].to_numpy(), label=f'{client_name.replace("_logger", "")} per epoch train F1', linestyle='-', marker='o')
+            plt.plot(master_train_df['epoch'].to_numpy(), master_train_df['test_f1'].to_numpy(), label='global train F1 after each round', linestyle='-', marker='o')
 
         # Labels and titles
         plt.ylabel('F1 Score')

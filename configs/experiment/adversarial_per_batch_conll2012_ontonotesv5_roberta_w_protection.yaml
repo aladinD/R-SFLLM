@@ -10,6 +10,6 @@ tags:
 - adversarial
 - per_batch
 task_name: ner
-mse_path: /home/aladin/latest/resilient_sfl/mse_files/mse_w_protection.npy
+mse_path: /home/aladin/latest/resilient_sfl/mse_files/barrage_mses/mse_w_protection.npy
 noise_mode: per_batch
 adversarial: true

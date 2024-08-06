@@ -53,6 +53,7 @@ def main(cfg: DictConfig):
     num_rounds = 10
     num_epochs = 10
     num_batches = 2100
+    # num_batches = 1000
 
     n = num_rounds * num_epochs * num_batches
 
@@ -64,11 +65,13 @@ def main(cfg: DictConfig):
         all_mses.append(mses)
 
     # Save all_mses to a file
-    save_to_file_pkl(all_mses, "mnli_mse_w_protection.pkl")
+    # save_to_file_pkl(all_mses, "mnli_mse_w_protection.pkl")
+    save_to_file_pkl(all_mses, "barrage_w_protection_long.pkl")
 
     # Convert list to numpy array and save
     all_mses_array = np.array(all_mses)
-    save_to_file_np(all_mses_array, "mnli_mse_w_protection.npy")
+    # save_to_file_np(all_mses_array, "mnli_mse_w_protection.npy")
+    save_to_file_np(all_mses_array, "barrage_w_protection_long.npy")
 
 if __name__ == "__main__":
     main()

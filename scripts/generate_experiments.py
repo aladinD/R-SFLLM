@@ -117,7 +117,8 @@ if __name__ == "__main__":
     exp_dir = os.path.join(project_root, "configs", "experiment")
 
     # Start generating experiment configurations
-    mse_path = "/home/aladin/latest/resilient_sfl/mse_files/mnli_mses"
+    # mse_path = "/home/aladin/latest/resilient_sfl/mse_files/mnli_mses"
+    mse_path = "/home/aladin/latest/resilient_sfl/mse_files/barrage_mses"
 
     main(experiment_dir=exp_dir, 
          adversarial=True, 

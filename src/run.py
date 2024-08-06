@@ -45,6 +45,11 @@ def train_single_client(client: Client, cfg: DictConfig, r: int, parallel: bool 
     # Assign current round
     client.model.current_round = r
 
+    # # Do not add noise to users 1 and 2
+    # if client.model.user_id !=2:
+    #     client.model.adversarial_training = False
+    #     client.model.skip_noise = True 
+
     if parallel:
         # hacky way to train on gpus 4, 5, 6, ..., num_clients + 4
         # cfg.trainer.devices = [client.id + dev_offset]

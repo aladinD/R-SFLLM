@@ -9,6 +9,6 @@ tags:
 - no_jammer
 - per_batch
 task_name: sc
-mse_path: /home/aladin/latest/resilient_sfl/mse_files/mnli_mses/mse_no_jammer.npy
+mse_path: /home/aladin/latest/resilient_sfl/mse_files/barrage_mses/mse_no_jammer.npy
 noise_mode: per_batch
 adversarial: false
